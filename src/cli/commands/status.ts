@@ -4,7 +4,7 @@ import { expandModifications } from "../../modifications/expand.js";
 import { computeFingerprint } from "../../modifications/fingerprint.js";
 import { allCurrency } from "../../artifacts/currency.js";
 import { PRODUCTION_ORDER } from "../../artifacts/graph.js";
-import { getVersion, requiredToolchainImage } from "../../version.js";
+import { getVersion, TOOLCHAIN_IMAGE_DIGEST } from "../../version.js";
 import { successPayload } from "../../ux/error-panel.js";
 import { volumeRootFor } from "../../workspace/paths.js";
 
@@ -15,7 +15,7 @@ export async function runStatus(
   const ctx = loadValidatedManifest(run.options, run.ports.host.cwd());
   const files = expandModifications(ctx.manifest.modifications, ctx.manifestDir);
   const fingerprint = computeFingerprint(getVersion(), files);
-  const imageRef = requiredToolchainImage();
+  const imageRef = TOOLCHAIN_IMAGE_DIGEST;
 
   let toolchainOk = false;
   let digest = "absent";

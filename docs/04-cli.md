@@ -65,7 +65,6 @@ compiled Firefox with a profile and stops it. It reads no product configuration,
 ports, no protocol and no session model. A change that would give it any of those belongs in
 the product, not here.
 
-
 | command                        | what it does                                               |
 | ------------------------------ | ---------------------------------------------------------- |
 | `w7s gecko start`              | starts the sidecar from `gecko-binary` for local iteration |

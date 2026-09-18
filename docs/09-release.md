@@ -16,8 +16,26 @@ They carry the same version because the tool and its toolchain — including the
 tree — must agree. A tool that could meet a toolchain it was not tested against reintroduces
 exactly the divergence this design removes.
 
-The CLI verifies this: it requires the toolchain tag matching its own version and refuses
-anything else. There is no override.
+### How the two are bound
+
+`src/version.ts` states the image twice, by hand, and derives neither from the package
+version:
+
+```ts
+export const TOOLCHAIN_IMAGE_DIGEST = "ghcr.io/rpjax/w7s-toolchain@sha256:ae738bf9…";
+export const TOOLCHAIN_IMAGE_TAG = "ghcr.io/rpjax/w7s-toolchain:0.1.0";
+```
+
+**Only the digest reaches the container engine.** The tag is printed by `w7s --version` and
+`w7s gecko toolchain --pull` so a person can read it, and nothing pulls or runs it.
+
+This is not the same guarantee as checking a tag. A tag is a mutable pointer: whoever can push
+to the registry can make `:0.1.0` mean other bytes, and a tool that pulled by tag would compile
+a different Firefox without saying so. Pulling by digest does not detect that — it makes it
+unrepresentable. The registry has no way to return anything but those bytes.
+
+The price is that the digest exists only after the image is pushed, so a release is not one
+step. That order is below, and it is not negotiable.
 
 ## Versioning
 
@@ -47,18 +65,34 @@ While the version is `0.x`, minor may break, and each entry says so.
 
 ## Cutting a release
 
+The version number is decided first, the image is built second, and the digest it produces is
+written into the package third. Nothing here can be reordered.
+
 ```bash
+# 1. set the version being released
+#    (edit package.json directly, or `npm version --no-git-tag-version <major|minor|patch>`)
+
+# 2. build and push the toolchain image for exactly that version
+cd toolchain
+docker build -t ghcr.io/rpjax/w7s-toolchain:0.1.0 .
+docker push ghcr.io/rpjax/w7s-toolchain:0.1.0        # prints: digest: sha256:…
+
+# 3. record what the push printed, in src/version.ts
+#    TOOLCHAIN_IMAGE_DIGEST → ghcr.io/rpjax/w7s-toolchain@sha256:<that digest>
+#    TOOLCHAIN_IMAGE_TAG    → ghcr.io/rpjax/w7s-toolchain:0.1.0
+
+# 4. prove the whole thing locally
 npm run lint && npm test
 npm run test:engine                # the tier CI cannot run — needs a container engine
 
-# 1. the toolchain image, for the version about to be released
-cd toolchain && docker build -t ghcr.io/rpjax/w7s-toolchain:0.1.0 . && docker push ghcr.io/rpjax/w7s-toolchain:0.1.0
-
-# 2. the package
-# move [Unreleased] to [x.y.z] - YYYY-MM-DD in CHANGELOG.md
-npm version <major|minor|patch>
+# 5. move [Unreleased] to [x.y.z] - YYYY-MM-DD in CHANGELOG.md, then ship
+git commit -am "release: 0.1.0"
+git tag -a v0.1.0 -m "0.1.0"
 git push --follow-tags
 ```
+
+`npm version` is not used to create the tag: it bumps the version, and by step 5 the version is
+already set and already baked into a pushed image.
 
 The tag triggers publication. The image must already be in the registry when it does.
 
@@ -77,29 +111,30 @@ A tag on red never ships.
 
 The two artifacts are produced in **different places**, and on purpose:
 
-| artifact            | built where                                                                 | why                                                                                          |
-| ------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| artifact            | built where                                                                 | why                                                                                                                                             |
+| ------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | the toolchain image | a machine with the engine and the time — by hand or on a self-hosted runner | it is 7.3 GB as measured on `0.1.0`, and a cold build clones Firefox and runs `mach bootstrap`; a hosted runner would pay that on every release |
-| the npm package     | the hosted `publish` job                                                    | seconds                                                                                      |
+| the npm package     | the hosted `publish` job                                                    | seconds                                                                                                                                         |
 
 So the order of a release is: **build and push the image first, then tag.** The publish job
 does not build the image — it _verifies the image exists_ for the version being published,
 and fails if it does not:
 
 ```yaml
-- name: verify the toolchain image exists
-  run: |
-    VERSION=$(node -p "require('./package.json').version")
-    docker manifest inspect ghcr.io/rpjax/w7s-toolchain:$VERSION > /dev/null
-- run: npm ci
-- run: npm run build
+- name: the git tag must name the version being published
+- name: log in to the container registry # GITHUB_TOKEN, packages: read
+- name: the toolchain image this release runs must exist
 - run: npm publish --provenance --access public
-  env:
-    NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
 
-That check is what makes the pairing real rather than a promise: a CLI that requires a
-toolchain tag can never reach npm before that tag exists.
+The image check reads `TOOLCHAIN_IMAGE_DIGEST` out of the built `dist/` and runs
+`docker manifest inspect` on it, which proves those exact bytes are in the registry. It then
+resolves `TOOLCHAIN_IMAGE_TAG` and requires it to point at the same digest — the tag is only a
+label, but at release time a label that disagrees means it was overwritten or a constant was
+mistyped, and either is a reason to stop.
+
+Those checks are what make the pairing real rather than a promise: the package cannot reach npm
+before the image it runs exists.
 
 Building the image:
 

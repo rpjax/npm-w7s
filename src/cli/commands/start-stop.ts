@@ -5,7 +5,7 @@ import { loadValidatedManifest } from "../context.js";
 import { currencyOf } from "../../artifacts/currency.js";
 import { expandModifications } from "../../modifications/expand.js";
 import { computeFingerprint } from "../../modifications/fingerprint.js";
-import { getVersion, requiredToolchainImage } from "../../version.js";
+import { getVersion, TOOLCHAIN_IMAGE_DIGEST } from "../../version.js";
 import { fail } from "../../errors/index.js";
 import { successPayload } from "../../ux/error-panel.js";
 
@@ -22,7 +22,7 @@ export async function runStart(run: RunContext): Promise<Record<string, unknown>
     });
   }
 
-  const imageRef = requiredToolchainImage();
+  const imageRef = TOOLCHAIN_IMAGE_DIGEST;
   const name = "w7s-sidecar-local";
   if (!run.options.dryRun) {
     await run.ports.engine.run(["rm", "-f", name]);

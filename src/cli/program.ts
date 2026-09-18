@@ -12,7 +12,7 @@ import {
 import { createRunContext, type RunContext } from "./run-context.js";
 import { createSystemPorts, type Ports } from "../ports/index.js";
 import { DockerEngine } from "../engine/docker.js";
-import { getVersion, requiredToolchainImage } from "../version.js";
+import { getVersion, TOOLCHAIN_IMAGE_TAG } from "../version.js";
 import { printErrorPanel, failurePayload } from "../ux/error-panel.js";
 import { printSessionHeader } from "../ux/session.js";
 import { nextStepsForPhase } from "../ux/next-steps.js";
@@ -140,7 +140,7 @@ export function createProgram(deps: AppDeps = {}): Command {
       .name("w7s")
       .description("Websete Speculum toolkit — apply, compile, package and test Speculum Gecko")
       .version(
-        `${getVersion()} (toolchain ${requiredToolchainImage()})`,
+        `${getVersion()} (toolchain ${TOOLCHAIN_IMAGE_TAG})`,
         "-V, --version",
         "print the w7s version and the toolchain image tag it requires",
       )

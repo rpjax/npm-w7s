@@ -1,6 +1,6 @@
 import type { RunContext } from "../run-context.js";
 import { loadValidatedManifest } from "../context.js";
-import { requiredToolchainImage } from "../../version.js";
+import { TOOLCHAIN_IMAGE_DIGEST } from "../../version.js";
 import { fail } from "../../errors/index.js";
 import { successPayload } from "../../ux/error-panel.js";
 
@@ -9,7 +9,7 @@ export async function runShell(
   run: RunContext,
 ): Promise<Record<string, unknown>> {
   const ctx = loadValidatedManifest(run.options, run.ports.host.cwd());
-  const imageRef = requiredToolchainImage();
+  const imageRef = TOOLCHAIN_IMAGE_DIGEST;
 
   if (!(await run.ports.engine.available())) {
     fail("Toolchain", "Container engine is unavailable.", {

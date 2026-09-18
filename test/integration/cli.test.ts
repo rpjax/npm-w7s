@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 import { createWorkspace, runProgram, runW7s, packageVersion } from "../helpers/cli.js";
 import { resolveWorkspace } from "../../src/workspace/paths.js";
-import { getVersion, requiredToolchainImage } from "../../src/version.js";
+import { getVersion, TOOLCHAIN_IMAGE_TAG } from "../../src/version.js";
 
 describe("cli (integration)", () => {
   it("parses global --json before the subcommand", async () => {
@@ -89,7 +89,7 @@ describe("cli (integration)", () => {
     assert.match(result.stdout, /w7s-toolchain/);
     assert.match(
       result.stdout,
-      new RegExp(requiredToolchainImage().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+      new RegExp(TOOLCHAIN_IMAGE_TAG.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
     );
   });
 });

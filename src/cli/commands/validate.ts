@@ -7,7 +7,7 @@ import { validateManifest } from "../../manifest/schema.js";
 import { expandModifications } from "../../modifications/expand.js";
 import { verifyReplacesDeclarations } from "../../modifications/compare.js";
 import { dirname } from "node:path";
-import { requiredToolchainImage } from "../../version.js";
+import { TOOLCHAIN_IMAGE_DIGEST } from "../../version.js";
 import { successPayload } from "../../ux/error-panel.js";
 import { fail } from "../../errors/index.js";
 
@@ -19,7 +19,7 @@ export async function runValidate(run: RunContext): Promise<Record<string, unkno
 
   const manifestDir = dirname(manifestPath);
   const files = expandModifications(raw.modifications, manifestDir);
-  const imageRef = requiredToolchainImage();
+  const imageRef = TOOLCHAIN_IMAGE_DIGEST;
 
   let pristineChecked = false;
   let unchecked: string[] = [];

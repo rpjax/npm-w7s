@@ -6,7 +6,7 @@ import { allCurrency } from "../../artifacts/currency.js";
 import { selectTests } from "../../tests/select.js";
 import { runTests, assertTestsOk } from "../../tests/run.js";
 import { printTestReport, testReportJson } from "../../tests/report.js";
-import { getVersion, requiredToolchainImage } from "../../version.js";
+import { getVersion, TOOLCHAIN_IMAGE_DIGEST } from "../../version.js";
 import type { TestClassification } from "../../manifest/types.js";
 import { fail } from "../../errors/index.js";
 
@@ -86,7 +86,7 @@ export async function runTest(
     return payload;
   }
 
-  const imageRef = requiredToolchainImage();
+  const imageRef = TOOLCHAIN_IMAGE_DIGEST;
   if (!(await run.ports.engine.available())) {
     fail("Toolchain", "Container engine is unavailable.", {
       hint: "w7s gecko toolchain --pull",

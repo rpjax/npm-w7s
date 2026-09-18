@@ -14,7 +14,7 @@ the supervisor, the wire protocol, or how the product behaves — and it must ne
 
 The test that decides whether a proposed change belongs here:
 
-> If it requires w7s to know something about how the product *works*, it is out of scope.
+> If it requires w7s to know something about how the product _works_, it is out of scope.
 
 That test has one deliberate exception, named in [04-cli.md](04-cli.md): `start` and `stop`
 launch the compiled browser locally, so that "compile it and look at it" does not require
@@ -50,6 +50,11 @@ One image, published by this package and versioned with it:
 ghcr.io/rpjax/w7s-toolchain:<same version as @rodrigopjax/w7s>
 ```
 
+**It is pulled by digest, never by that tag.** `src/version.ts` states both references by
+hand — the digest, which is the only one the container engine ever sees, and the tag, which is
+printed for people to read. A tag is a mutable pointer, so it cannot carry a guarantee; the
+digest can. See [09-release.md](09-release.md) for how the two are kept in step.
+
 It carries two things: the **pristine Gecko tree** at the pinned Firefox ESR, mounted
 read-only at `/gecko-pristine`, and the **toolchain** — the Gecko build dependencies plus
 the runners a release-gate test is allowed to name (see [05-tests.md](05-tests.md)).
@@ -74,14 +79,14 @@ no git at all to apply modifications.
 
 Measured on the first build of `0.1.0`:
 
-| fact                       | value                                                            |
-| -------------------------- | ---------------------------------------------------------------- |
-| image size                 | 7.3 GB                                                           |
-| Firefox commit             | `feec67e62a5148b41fd017ccbbc463e8a6f9e83d`                        |
-| milestone reported by mach | `153.2.0`                                                        |
-| rust                       | `1.90.0`, with sccache `0.17.0`                                  |
-| default user               | `w7s` — non-root, because root ignores the `/gecko-pristine` mode |
-| rebuild with a warm layer cache | ~3.5 minutes                                                 |
+| fact                            | value                                                             |
+| ------------------------------- | ----------------------------------------------------------------- |
+| image size                      | 7.3 GB                                                            |
+| Firefox commit                  | `feec67e62a5148b41fd017ccbbc463e8a6f9e83d`                        |
+| milestone reported by mach      | `153.2.0`                                                         |
+| rust                            | `1.90.0`, with sccache `0.17.0`                                   |
+| default user                    | `w7s` — non-root, because root ignores the `/gecko-pristine` mode |
+| rebuild with a warm layer cache | ~3.5 minutes                                                      |
 
 A cold build was not separately timed; it is dominated by the Firefox clone and
 `mach bootstrap`, both of which are network-bound. Plan for it in tens of minutes, not

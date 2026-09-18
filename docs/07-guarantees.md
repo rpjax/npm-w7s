@@ -11,7 +11,8 @@ remembering anything.
 | an unknown manifest key                    | validation error, not a warning — a typo in a field name is not a silent no-op               |
 | the container engine being absent          | exit 4 with its own message; never a degraded partial result                                 |
 | a cold build exhausting memory             | the required amount is checked against the engine's limit before the build starts            |
-| the toolchain drifting from the tool       | one image per w7s version, verified by digest — they cannot disagree                         |
+| the toolchain drifting from the tool       | the image is pulled by digest, stated in the package — the version cannot select other bytes |
+| the toolchain tag being overwritten        | nothing reads the tag; rewriting `:0.1.0` in the registry cannot change what runs            |
 | losing an uncaptured edit                  | `reset` and upgrades refuse while the working tree differs, and list what would be lost      |
 | running a command twice                    | every command is idempotent; the second run does nothing and says why                        |
 | an artifact recorded as current but gone   | currency is recorded beside the repository and inside the volume; disagreement means missing |
@@ -27,6 +28,7 @@ remembering anything.
 - a build cache of its own — the compiler has one
 - a second deployment path — dockup is the only one
 - `docker build` — no image is built by this tool
+- pulling the toolchain by tag — a tag is a mutable pointer, so it names nothing
 - patching by anchor or by hunk — a changed file is held whole
 - git, for applying modifications — the pristine tree is a directory
 - any flag whose purpose is to tolerate a failure

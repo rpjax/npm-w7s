@@ -1,5 +1,5 @@
 import type { RunContext } from "../run-context.js";
-import { requiredToolchainImage, getVersion } from "../../version.js";
+import { TOOLCHAIN_IMAGE_DIGEST, TOOLCHAIN_IMAGE_TAG, getVersion } from "../../version.js";
 import { fail } from "../../errors/index.js";
 import { successPayload } from "../../ux/error-panel.js";
 
@@ -13,7 +13,7 @@ export async function runToolchain(
     });
   }
 
-  const imageRef = requiredToolchainImage();
+  const imageRef = TOOLCHAIN_IMAGE_DIGEST;
   if (!(await run.ports.engine.available())) {
     fail("Toolchain", "Container engine is unavailable.", {
       hint: "Install Docker or Podman, then retry w7s gecko toolchain --pull",
@@ -30,6 +30,7 @@ export async function runToolchain(
     run.startedAt,
     {
       image: imageRef,
+      tag: TOOLCHAIN_IMAGE_TAG,
       digest: image?.digest ?? null,
       w7sVersion: getVersion(),
     },
@@ -40,6 +41,7 @@ export async function runToolchain(
     run.ports.output.writeStdout(`${JSON.stringify(payload)}\n`);
   } else {
     run.log.ok("toolchain", `${imageRef}`);
+    run.log.info("toolchain", `tag ${TOOLCHAIN_IMAGE_TAG} (printed only — never pulled)`);
     if (image) {
       run.log.info("toolchain", `digest ${image.digest}`);
     }

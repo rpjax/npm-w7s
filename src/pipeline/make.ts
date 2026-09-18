@@ -14,7 +14,7 @@ import {
 } from "../artifacts/currency.js";
 import { stepsForMake, assertArtifactName, dependenciesOf } from "../artifacts/graph.js";
 import type { Ports } from "../ports/index.js";
-import { requiredToolchainImage, getVersion } from "../version.js";
+import { TOOLCHAIN_IMAGE_DIGEST, getVersion } from "../version.js";
 import { ensureWorkspaceDirs, volumeRootFor, type WorkspacePaths } from "../workspace/paths.js";
 import { writeSidecarPackage } from "../package/sidecar.js";
 import { selectTests } from "../tests/select.js";
@@ -89,7 +89,7 @@ async function produceGeckoSource(
   fingerprint: string,
 ): Promise<{ filesWritten: number; filesUnchanged: number }> {
   const { manifest, manifestDir, paths, ports, dryRun } = options;
-  const imageRef = options.imageRef ?? requiredToolchainImage();
+  const imageRef = options.imageRef ?? TOOLCHAIN_IMAGE_DIGEST;
   ensureWorkspaceDirs(paths);
 
   const files = expandModifications(manifest.modifications, manifestDir);
@@ -126,7 +126,7 @@ async function produceGeckoSource(
 
 async function produceGeckoBinary(options: MakeOptions, fingerprint: string): Promise<void> {
   const { paths, ports, dryRun, manifestDir } = options;
-  const imageRef = options.imageRef ?? requiredToolchainImage();
+  const imageRef = options.imageRef ?? TOOLCHAIN_IMAGE_DIGEST;
   mkdirSync(paths.geckoBinary, { recursive: true });
 
   if (dryRun) {
@@ -167,7 +167,7 @@ async function produceGeckoBinary(options: MakeOptions, fingerprint: string): Pr
 
 async function produceSidecarPackage(options: MakeOptions, fingerprint: string): Promise<void> {
   const { paths, ports, dryRun, manifestDir, manifest } = options;
-  const imageRef = options.imageRef ?? requiredToolchainImage();
+  const imageRef = options.imageRef ?? TOOLCHAIN_IMAGE_DIGEST;
 
   const currency = allCurrency(
     manifestDir,
@@ -223,7 +223,7 @@ async function produceSidecarPackage(options: MakeOptions, fingerprint: string):
 export async function makeArtifact(options: MakeOptions): Promise<MakeResult> {
   assertArtifactName(options.artifact);
   const artifact = options.artifact as ArtifactName;
-  const imageRef = options.imageRef ?? requiredToolchainImage();
+  const imageRef = options.imageRef ?? TOOLCHAIN_IMAGE_DIGEST;
 
   await ensureToolchain(options.ports, imageRef);
 
