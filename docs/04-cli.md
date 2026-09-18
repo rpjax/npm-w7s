@@ -49,6 +49,12 @@ directly.
 `doctor` is deliberately absent: in the Speculum repository that word already means
 "diagnose a capture". Humans use `status`, machines use `validate`.
 
+`promote` is **specified but not implemented**, and named here so nobody assumes it was
+forgotten. It would convert the graft into real commits on `source.fork.branch`, which is
+the day the overlay model ends: `sync` becomes `git am`, `adopt` becomes `git status`, and
+the lock becomes unnecessary. The manifest already records the fork remote and branch so
+that decision costs a verb and not a redesign. It stays deferred until after Speculum V1.
+
 ## `--mode auto`
 
 The only inference the tool is allowed, and it is derived from what `sync` actually wrote,
@@ -84,6 +90,23 @@ Stamps are written twice: in `.w7s/state.json` on the Windows side and inside th
 If Windows says "built" and the volume stamp is gone, the volume was destroyed out of band,
 and the stage is reported cold rather than lying.
 
+## Error phases
+
+Every failure is raised with a phase, and the exit code is derived from the phase rather
+than chosen at the throw site. This is dockup's `exitCodeForPhase` pattern, and it is what
+makes a given class of failure always exit the same way.
+
+| phase | meaning | exit |
+|---|---|---|
+| `CLI` | bad arguments | 2 |
+| `MANIFEST` | manifest missing, unparseable, or schema-invalid | 2 |
+| `GRAFT` | drift in the workspace | 3 |
+| `INVARIANT` | a law was violated (`validate`, ambiguous anchor) | 6 |
+| `ENGINE` | container engine or image unavailable, memory insufficient | 4 |
+| `STALE` | a stage exists but is behind (only raised under `--check`) | 5 |
+| `TEST` | a declared suite went red | 7 |
+| `RUNTIME` | an invoked command failed, or an unexpected error | 1 |
+
 ## Exit codes
 
 Stable, because dockup and CI consume them.
@@ -104,3 +127,43 @@ class of failure always exits the same way.
 
 Every failure prints, besides the cause, **one line saying what to do next**. An error that
 does not name the next step is how a directory of 121 rescue scripts comes into existence.
+
+## The `--json` contract
+
+`--json` guarantees that stdout carries exactly one JSON document and nothing else.
+Subprocess output is captured, never leaked onto stdout — the same guarantee dockup makes.
+
+Success:
+
+```jsonc
+{
+  "ok": true,
+  "command": "gecko sync",
+  "delta": "a3f19c",
+  "elapsedSec": 1.4,
+  "result":    { /* verb-specific; documented per verb */ },
+  "report":    { /* the same data the human summary renders */ },
+  "nextSteps": ["w7s gecko build"]
+}
+```
+
+Failure:
+
+```jsonc
+{
+  "ok": false,
+  "command": "gecko sync",
+  "phase": "GRAFT",
+  "message": "3 files in the workspace diverge from the graft.",
+  "hint": "w7s gecko adopt --all, then retry.",
+  "detail": ["docshell/base/BrowsingContext.cpp", "…"],
+  "cause": null,
+  "elapsedSec": 0.6,
+  "exitCode": 3
+}
+```
+
+Two rules that make this usable as an API: `ok` is always present and always a boolean, and
+`phase`/`exitCode` are always present on failure. A consumer can branch on `jq -e '.ok'`
+without knowing which verb ran. `--with-logs` adds captured subprocess output under
+`result.logs`, off by default so the document stays small.

@@ -87,6 +87,9 @@ w7s gecko test             # the declared test suites
 | [05-runner.md](docs/05-runner.md) | the test runner contract |
 | [06-provider.md](docs/06-provider.md) | how dockup consumes w7s |
 | [07-resilience.md](docs/07-resilience.md) | guarantees, locks, atomicity, line endings |
+| [08-testing.md](docs/08-testing.md) | how the tool itself is tested, and the law-to-test map |
+| [09-release.md](docs/09-release.md) | versioning, CHANGELOG, tag to npm |
+| [10-ci.md](docs/10-ci.md) | using w7s from a pipeline |
 
 ## License
 

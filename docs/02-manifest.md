@@ -20,6 +20,7 @@ validate --offline` needs nothing but the repository.
   "id": "speculum-gecko",
 
   "source":   { /* the upstream pin */ },
+  "graft":    { /* where our delta lives, if not the default */ },
   "vendor":   [ /* trees copied into the Gecko tree */ ],
   "changes":  [ /* logical units of our delta, with intent */ ],
   "targets":  { /* compilation targets */ },
@@ -29,9 +30,14 @@ validate --offline` needs nothing but the repository.
   "tests":    { /* declared suites */ },
   "runtimeEnv": { /* env for the running sidecar, declared once */ },
   "health":   { /* readiness probe */ },
-  "consumers":{ /* dockup and friends */ }
+  "consumers":{ /* dockup and friends */ },
+  "stateDir": ".w7s"
 }
 ```
+
+Every section except `schema`, `kind`, `id`, `source` and `targets` has a working default.
+A minimal manifest is four fields and a target; everything else exists so that a decision
+can be *moved out of the tool*, not so that it must be made.
 
 ## `source` — the pin
 
@@ -50,8 +56,32 @@ validate --offline` needs nothing but the repository.
 `HEAD` does not equal `commit`. `fork` is recorded for the day the delta is promoted to
 real commits; nothing reads it yet.
 
+How the clone is made is also declared, because "shallow, single branch" is a policy and
+not a fact:
+
+```jsonc
+"source": { "clone": { "depth": 1, "singleBranch": true } }
+```
+
+Defaults are `depth: 1` and `singleBranch: true` — the measured clone was 266 s and 5.7 GB;
+full history costs considerably more and nothing reads it. Set `depth: 0` for a full clone
+when a bisect needs one.
+
 Being JSON matters here. The predecessor was a shell file sourced with
 `source <(sed 's/\r$//' UPSTREAM)` — a CRLF workaround that JSON does not need.
+
+## `graft` — where our delta lives
+
+```jsonc
+"graft": { "root": "graft", "sources": "sources", "hooks": "hooks" }
+```
+
+Defaults are exactly those, so the section is normally absent. It exists because the
+directory names are a convention of this project, not a property of the universe: a rename
+must cost one line of manifest, never a change to the tool.
+
+What the tool does *not* allow is collapsing `sources` and `hooks` into one directory. That
+split is L3 made visible in the tree, and `validate` depends on it.
 
 ## `vendor` — trees copied in
 
@@ -134,9 +164,30 @@ the managed host alongside the browser.
 }
 ```
 
+`engine` is declared, not assumed: `docker` is the default and `podman` is accepted, and
+anything else that speaks the same CLI can be named there. The tool shells out to it; it has
+no library dependency on either.
+
 `image` is pinned by tag and verified by digest. `dockerfile` is a reference for whoever
 builds the image — **w7s never builds it** (L5); dockup does, and `builder --pull` only
 fetches and verifies.
+
+The build commands themselves are data:
+
+```jsonc
+"builder": {
+  "commands": {
+    "full":     "./mach build",
+    "binaries": "./mach build binaries",
+    "export":   "./mach build pre-export export"
+  }
+}
+```
+
+Those are the defaults. They are declared for the same reason the test suites are: `mach` is
+today's build system, and the tool must not be the thing that prevents it from changing.
+`--mode` selects a declared command by name; it does not know what `mach` is. A mode whose
+command is absent is a manifest error, not a fallback.
 
 `memoryRequired` is a precondition, not a hint. A cold Gecko build was measured at 19.6 GB
 peak RSS; `validate` checks the VM limit before letting a cold build start, because
@@ -157,6 +208,9 @@ before compiling. See [04-cli.md](04-cli.md) for how `--mode auto` uses them.
   "assert": ["application.ini:regular-file", "firefox:executable"]
 }
 ```
+
+The archive format is inferred from the `out` extension — `.tar.gz` and `.tar.zst` are
+supported — so changing it is changing one string.
 
 Every entry here is knowledge paid for once and previously buried in a shell script:
 `dist/bin` is full of relative symlinks into the objdir, so without `resolveSymlinks` the
@@ -204,5 +258,10 @@ container it does not produce. See [06-provider.md](06-provider.md).
 ## Machine state is not here
 
 The manifest is repository content: versioned, identical on every machine. Anything
-machine-specific lives in `.w7s/state.json`, gitignored — last sync, last build, stamps.
-A manifest that needed editing per machine would not be a manifest.
+machine-specific lives in `<stateDir>/state.json`, gitignored — last sync, last build,
+stamps, resolved workspace paths. A manifest that needed editing per machine would not be a
+manifest.
+
+`stateDir` defaults to `.w7s`. It is configurable for the same reason `graft.root` is, and
+for one more: a repository that already uses that name for something else should not have to
+argue with the tool.
