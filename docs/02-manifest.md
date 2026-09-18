@@ -1,273 +1,200 @@
-# The manifest — `w7s.json`
+# Manifest reference — `w7s.json`
 
-One file per area. `w7s` walks up from the current directory to find it, exactly as
-dockup finds `*.dockup.json`. The `kind` field selects the driver; `gecko-engine` is the
-first and currently only one.
+One file at the root of the engine directory. Discovered by walking up from the current
+directory, the same way dockup discovers `dockup.json`. `<name>.w7s.json` is also accepted,
+so a repository with more than one engine directory can name them.
 
-The manifest carries **only what is not a file path**. The file list is derived from the
-tree (`graft/sources/**`, `graft/hooks/**`). A hand-maintained list diverges — in the
-Speculum repository it diverged twice, in two different directions.
+Field names are camelCase, matching `dockup.json`.
 
-Validation is JSON Schema (`schema/w7s.schema.json`) evaluated with ajv. `w7s gecko
-validate --offline` needs nothing but the repository.
-
-## Skeleton
+Two keys. Nothing else is accepted — an unknown key is a validation error, not a warning.
 
 ```jsonc
 {
-  "schema": 1,
-  "kind": "gecko-engine",
-  "id": "speculum-gecko",
-
-  "source":   { /* the upstream pin */ },
-  "graft":    { /* where our delta lives, if not the default */ },
-  "vendor":   [ /* trees copied into the Gecko tree */ ],
-  "changes":  [ /* logical units of our delta, with intent */ ],
-  "targets":  { /* compilation targets */ },
-  "builder":  { /* the workshop */ },
-  "artifact": { /* how the payload is packaged */ },
-  "run":      { /* execution targets */ },
-  "tests":    { /* declared suites */ },
-  "runtimeEnv": { /* env for the running sidecar, declared once */ },
-  "health":   { /* readiness probe */ },
-  "consumers":{ /* dockup and friends */ },
-  "stateDir": ".w7s"
+  "modifications": [ ... ],
+  "tests":         [ ... ]
 }
 ```
 
-Every section except `schema`, `kind`, `id`, `source` and `targets` has a working default.
-A minimal manifest is four fields and a target; everything else exists so that a decision
-can be *moved out of the tool*, not so that it must be made.
+There is no `schema`, no `kind` and no `id`: `w7s gecko` is the command family for the
+Speculum Gecko engine, so it already knows what it is reading. There is no `source` and no
+pin: the Firefox version belongs to the w7s release ([01-concepts.md](01-concepts.md)).
 
-## `source` — the pin
+## `modifications`
 
-```jsonc
-"source": {
-  "remote":   "https://github.com/mozilla-firefox/firefox.git",
-  "tag":      "FIREFOX_153_2_0esr_RELEASE",
-  "commit":   "feec67e62a5148b41fd017ccbbc463e8a6f9e83d",
-  "released": "2026-09-01",
-  "fork":     { "remote": "https://github.com/rpjax/firefox.git",
-                "branch": "speculum/153.2.0esr" }
-}
-```
+An ordered list. Each entry is a unit of intent that declares how it installs itself.
 
-`commit` is not redundant with `tag`: tags move. `init` clones the tag and aborts if
-`HEAD` does not equal `commit`. `fork` is recorded for the day the delta is promoted to
-real commits; nothing reads it yet.
+Applied in declaration order when the working tree is produced. Order matters only when two entries write the same
+`geckoPath`; the tool reports that as a conflict rather than letting the last one win.
 
-How the clone is made is also declared, because "shallow, single branch" is a policy and
-not a fact:
+### Common fields
 
-```jsonc
-"source": { "clone": { "depth": 1, "singleBranch": true } }
-```
+Required on every entry, without exception.
 
-Defaults are `depth: 1` and `singleBranch: true` — the measured clone was 266 s and 5.7 GB;
-full history costs considerably more and nothing reads it. Set `depth: 0` for a full clone
-when a bisect needs one.
+| field | meaning |
+|---|---|
+| `name` | what this unit is, in words a reader recognizes |
+| `description` | why it exists; a unit nobody can justify is a unit nobody can delete safely |
+| `type` | `"directory"` or `"files"` — how the file set is declared |
+| `replacesGeckoSource` | `true` if these files replace files that exist in the pristine Firefox tree, `false` if they are entirely ours |
 
-Being JSON matters here. The predecessor was a shell file sourced with
-`source <(sed 's/\r$//' UPSTREAM)` — a CRLF workaround that JSON does not need.
+`replacesGeckoSource` is verified per file, in both directions:
 
-## `graft` — where our delta lives
+- `true` and the target does **not** exist in `/gecko-pristine` → error
+- `false` and the target **does** exist in `/gecko-pristine` → error
+
+So the declaration cannot be wrong and cannot be silently wrong. Dropping a Firefox file
+into a directory declared `false` fails the next production step, naming the file.
+
+### `type: "directory"`
 
 ```jsonc
-"graft": { "root": "graft", "sources": "sources", "hooks": "hooks" }
+{ "name": "projection runtime",
+  "description": "our C++ compiled inside Gecko — producer, CSSOM, input, control ABI",
+  "type": "directory",
+  "localPath": "./modifications/runtime",
+  "geckoPath": ".",
+  "replacesGeckoSource": false }
 ```
 
-Defaults are exactly those, so the section is normally absent. It exists because the
-directory names are a convention of this project, not a property of the universe: a rename
-must cost one line of manifest, never a change to the tool.
+Every file under `localPath` is written to the same relative path under `geckoPath`. The
+directory structure in the repository is the destination structure — reading the repository
+tells you exactly where each file lands.
 
-What the tool does *not* allow is collapsing `sources` and `hooks` into one directory. That
-split is L3 made visible in the tree, and `validate` depends on it.
+`geckoPath` is always written out, including `"."` for the tree root. There is no implied
+root.
 
-## `vendor` — trees copied in
+There is no exclusion list. A directory entry must be true about its whole contents; if you
+need a subset, declare a `files` entry.
+
+### `type: "files"`
 
 ```jsonc
-"vendor": [
-  { "from": "producer", "to": "third_party/speculum-producer",
-    "include": ["include/speculum/*.h"] }
-]
+{ "name": "producer headers",
+  "description": "the portable C++ producer core, vendored into third_party",
+  "type": "files",
+  "files": [
+    { "localPath": "./producer/include/speculum/Producer.h",
+      "geckoPath": "third_party/speculum-producer/include/speculum/Producer.h" },
+    { "localPath": "./producer/include/speculum/Wire.h",
+      "geckoPath": "third_party/speculum-producer/include/speculum/Wire.h" }
+  ],
+  "replacesGeckoSource": false }
 ```
 
-`from` is relative to the manifest; `to` is relative to the Gecko tree root. Vendored
-content obeys L2 like everything else: identical bytes are not rewritten.
+For the cases where the repository layout and the Gecko layout genuinely differ.
 
-## `changes` — the delta, with intent
+`localPath` and `geckoPath` name which side of the boundary each path belongs to. Neither is
+called `source` or `target`: in a repository about a browser engine, "source" already means
+something else, and "target" already means a compilation target.
 
-Each entry is a logical unit, not a file. `sources` and `hooks` are globs resolved
-against `graft/sources/` and `graft/hooks/`.
+### How a modification is installed
 
-```jsonc
-"changes": [
-  { "id": "cssom",
-    "why": "per-rule notification — see docs/gecko-engine/02-costura §4",
-    "sources": ["dom/base/SpeculumCssom.*"],
-    "hooks":   ["dom/base/Document.cpp#cssom-*",
-                "dom/base/ShadowRoot.cpp#rule-added"] },
+One mechanism: **write the file at `geckoPath`, replacing whatever is there.**
 
-  { "id": "control-abi",
-    "why": "control bridge — see docs/gecko-engine/18-abi-controle",
-    "sources": ["dom/ipc/SpeculumControlAbi.*"],
-    "hooks":   ["dom/ipc/PContent.ipdl#*"],
-    "ipc": { "syncMessages": [
-      { "name": "PContent::SpeculumClaimGeneration",
-        "description": "one claim per Document attach; the producer writes generation" }
-    ] } }
-]
-```
+There is no patching, no anchoring and no hunk. A change to a Firefox file means holding the
+whole file, which costs a copy and buys two things: the reader of the repository sees the
+real code in context, and a Firefox upgrade produces a readable three-way merge instead of a
+failed anchor.
 
-Three deliberate choices:
+A file is written only when its content differs from what is already at `geckoPath`. An
+identical file is left untouched, mtime included, because a new mtime on a build input
+invalidates work the compiler already did.
 
-**`why` is required.** The manifest is the answer to "what do we change in Gecko and what
-for?". Before this file, that answer existed in no single place.
+### Upgrade reports
 
-**`ipc.syncMessages` is data, not a script.** Gecko's IPDL refuses `export` unless a sync
-message is registered in `ipc/ipdl/sync-messages.ini`. The predecessor was a Python
-rewriter whose entire body was a list of tuples; the tuples belong here.
+When w7s is upgraded, the pristine tree changes. For every file declared
+`replacesGeckoSource: true`, the tool compares the pristine version it was written against
+with the new pristine version and reports the ones upstream touched, with the diff.
 
-**`#anchor-id` in a hook glob** refers to an edit `id` inside an inject file, so a change
-can claim specific edits of a shared file. Two changes touching the same file is normal
-(`Document.cpp` is touched by three); edits apply in manifest order, always from BASE.
-
-## `targets` — compilation targets
-
-```jsonc
-"targets": {
-  "linux-x64": { "mozconfig": "mozconfig",
-                 "objdir":    "obj-x86_64-pc-linux-gnu",
-                 "hostRid":   "linux-x64",
-                 "dist":      "dist/linux-x64" }
-},
-"defaultTarget": "linux-x64"
-```
-
-Indexing workspaces and payloads by target is what lets a second target exist later
-without reorganizing anything. `hostRid` is the .NET runtime identifier used to publish
-the managed host alongside the browser.
-
-## `builder` — the workshop
-
-```jsonc
-"builder": {
-  "engine":     "docker",
-  "image":      "speculum/gecko-builder:153.2.0esr-1",
-  "dockerfile": "image/builder.Dockerfile",
-  "volumes": { "src":   "speculum-gecko-src",
-               "obj":   "speculum-gecko-obj",
-               "cache": "speculum-gecko-cache" },
-  "jobs": 6,
-  "memoryRequired": "20g",
-  "exportTriggers": ["**/*.ipdl", "ipc/ipdl/sync-messages.ini", "**/moz.build"]
-}
-```
-
-`engine` is declared, not assumed: `docker` is the default and `podman` is accepted, and
-anything else that speaks the same CLI can be named there. The tool shells out to it; it has
-no library dependency on either.
-
-`image` is pinned by tag and verified by digest. `dockerfile` is a reference for whoever
-builds the image — **w7s never builds it** (L5); dockup does, and `builder --pull` only
-fetches and verifies.
-
-The build commands themselves are data:
-
-```jsonc
-"builder": {
-  "commands": {
-    "full":     "./mach build",
-    "binaries": "./mach build binaries",
-    "export":   "./mach build pre-export export"
-  }
-}
-```
-
-Those are the defaults. They are declared for the same reason the test suites are: `mach` is
-today's build system, and the tool must not be the thing that prevents it from changing.
-`--mode` selects a declared command by name; it does not know what `mach` is. A mode whose
-command is absent is a manifest error, not a fallback.
-
-`memoryRequired` is a precondition, not a hint. A cold Gecko build was measured at 19.6 GB
-peak RSS; `validate` checks the VM limit before letting a cold build start, because
-discovering this as an OOM forty minutes in is the worst possible way.
-
-`exportTriggers` are the paths whose modification forces an IPDL/build-backend export pass
-before compiling. See [04-cli.md](04-cli.md) for how `--mode auto` uses them.
-
-## `artifact` — packaging
-
-```jsonc
-"artifact": {
-  "from": "${objdir}/dist/bin",
-  "out":  "${target.dist}/firefox-dist.tar.gz",
-  "resolveSymlinks": true,
-  "exclude": ["Test*", "*Server", "*.so-gdb.py", ".lldbinit", ".mkdir.done",
-              ".parentlock", "lock"],
-  "assert": ["application.ini:regular-file", "firefox:executable"]
-}
-```
-
-The archive format is inferred from the `out` extension — `.tar.gz` and `.tar.zst` are
-supported — so changing it is changing one string.
-
-Every entry here is knowledge paid for once and previously buried in a shell script:
-`dist/bin` is full of relative symlinks into the objdir, so without `resolveSymlinks` the
-image gets a broken `application.ini` and Firefox dies on XPCOM; the excludes drop test
-servers whose names Docker on Windows refuses; the asserts fail the package instead of
-shipping something that cannot start.
-
-## `run` — execution targets
-
-```jsonc
-"run": {
-  "docker": { "kind": "docker", "image": "speculum/gecko:dev" },
-  "wsl":    { "kind": "wsl", "distro": "Ubuntu", "dir": "~/.w7s/run" }
-},
-"defaultRun": "docker"
-```
-
-Same shape for both, because they are the same category of thing: a place that receives a
-payload and runs it. Neither compiles (L7).
-
-## `runtimeEnv` and `health`
-
-```jsonc
-"runtimeEnv": {
-  "SPECULUM_ORCHESTRATOR_PORT": "4100",
-  "SPECULUM_ORCHESTRATOR_MAX_PAIRS": "8",
-  "MOZ_DISABLE_CONTENT_SANDBOX": "1"
-},
-"health": { "url": "http://127.0.0.1:${SPECULUM_ORCHESTRATOR_PORT}/ready" }
-```
-
-Declared once and consumed three ways: `run` exports it into the process, the product image
-receives it at build time, and dockup stops repeating it. Before this, the same four
-variables lived in both the Dockerfile and `dockup.json`.
+The merge is yours — you have the context. Being told is the tool's job.
 
 ## `tests`
 
-Declared suites, their commands, where each one runs and what each one requires. The shape
-is specified in [05-runner.md](05-runner.md) rather than here, because it is the one section
-whose content the tool deliberately does not understand.
+Specified in [05-tests.md](05-tests.md), because it is the one section whose contents the
+tool deliberately does not interpret.
 
-## `consumers`
+## A complete manifest
 
 ```jsonc
-"consumers": { "dockup": { "root": "../deploy", "service": "sidecar" } }
+{
+  "modifications": [
+    { "name": "projection runtime",
+      "description": "our C++ compiled inside Gecko — producer, CSSOM, input, control ABI",
+      "type": "directory",
+      "localPath": "./modifications/runtime",
+      "geckoPath": ".",
+      "replacesGeckoSource": false },
+
+    { "name": "runtime install points",
+      "description": "the Firefox files that call into the runtime — call sites, moz.build, IPDL",
+      "type": "directory",
+      "localPath": "./modifications/install",
+      "geckoPath": ".",
+      "replacesGeckoSource": true },
+
+    { "name": "fork build configuration",
+      "description": "the Speculum application definition in the Gecko build system",
+      "type": "directory",
+      "localPath": "./modifications/build-configuration",
+      "geckoPath": ".",
+      "replacesGeckoSource": false },
+
+    { "name": "producer headers",
+      "description": "the portable C++ producer core, vendored into third_party",
+      "type": "directory",
+      "localPath": "./producer/include",
+      "geckoPath": "third_party/speculum-producer/include",
+      "replacesGeckoSource": false }
+  ],
+
+  "tests": [
+    { "name": "producer core",
+      "description": "hashing, encoding and the producer loop over a fake DOM",
+      "entryPoint": "./tests/producer/run.sh",
+      "runner": "bash",
+      "workingDirectory": "./tests/producer",
+      "classification": "release-gate",
+      "dependsOn": [],
+      "verifies": "build-output" },
+
+    { "name": "control ABI golden",
+      "description": "the control ABI has not changed without someone deciding to",
+      "entryPoint": "./tests/abi/Abi.Tests.csproj",
+      "runner": "dotnet test",
+      "workingDirectory": "./tests/abi",
+      "classification": "release-gate",
+      "dependsOn": [],
+      "verifies": "build-output" },
+
+    { "name": "DOM projection parity",
+      "description": "one-to-one projection against the compiled Firefox",
+      "entryPoint": "./tests/parity/main.mjs",
+      "runner": "node",
+      "workingDirectory": "./tests/parity",
+      "classification": "release-gate",
+      "dependsOn": ["gecko-binary"],
+      "verifies": "build-output" },
+
+    { "name": "sidecar readiness",
+      "description": "the released sidecar answers /ready and serves one session",
+      "entryPoint": "./tests/readiness/check.mjs",
+      "runner": "node",
+      "workingDirectory": "./tests/readiness",
+      "classification": "release-gate",
+      "dependsOn": ["sidecar-package"],
+      "verifies": "released-image" },
+
+    { "name": "AVIF decode probe",
+      "description": "theory: does AVIF decode land before the first frame is emitted?",
+      "entryPoint": "./tests/avif/probe.py",
+      "runner": "python3",
+      "workingDirectory": "./tests/avif",
+      "classification": "diagnostic",
+      "dependsOn": ["gecko-binary"],
+      "verifies": "build-output",
+      "extraPackages": ["libavif-bin"] }
+  ]
+}
 ```
 
-Used only for reporting: it is how `status` can inspect the image label and the running
-container it does not produce. See [06-provider.md](06-provider.md).
-
-## Machine state is not here
-
-The manifest is repository content: versioned, identical on every machine. Anything
-machine-specific lives in `<stateDir>/state.json`, gitignored — last sync, last build,
-stamps, resolved workspace paths. A manifest that needed editing per machine would not be a
-manifest.
-
-`stateDir` defaults to `.w7s`. It is configurable for the same reason `graft.root` is, and
-for one more: a repository that already uses that name for something else should not have to
-argue with the tool.
+Forty-five files and five tests, in sixty lines, with nothing inferred.

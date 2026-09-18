@@ -1,94 +1,117 @@
 # w7s
 
-**Websete Speculum toolkit.** One command surface for the Gecko engine of Speculum:
-pin the upstream Firefox, apply our changes, build, package, run, and report — all
-driven by a declarative `w7s.json`.
+**Websete Speculum toolkit.** One command surface for the Speculum Gecko engine: apply our
+modifications to Firefox, compile, package, run and test — driven by a declarative
+`w7s.json` with two keys.
 
-W7S stands for Websete Speculum. The package is independent — its own repository,
-its own version, installed globally — but it is *tailored* to Speculum. It does not
-pretend to be a generic build orchestrator.
+W7S stands for Websete Speculum. The package is independent — its own repository, its own
+version, installed globally — and it is *tailored* to Speculum. It is not a generic build
+orchestrator and does not pretend to be one.
 
 ```bash
 npm install -g @rodrigopjax/w7s
 ```
 
-## The mental model
+## The model
 
-Four places. Source is authored in exactly one of them.
+The Firefox version is not something your repository declares. It ships inside the toolchain
+image, versioned with this package:
 
 ```
-┌─ 1 ─ Windows ───────────────┐   our source. THE only one.
-│  gecko-engine/graft/        │   ~45 files, versioned. Where you write.
-└──────────────┬──────────────┘
-               │ sync  (one direction, always)
-┌─ 2 ─ container ─────────────┐   the workshop. Disposable cache.
-│  gecko-builder image        │   Firefox at the pin + our source + objdir.
-│  volumes src / obj / cache  │   Runs on your machine. Nobody edits here.
-└──────────────┬──────────────┘
-               │ artifact
-┌─ 3 ─ Windows ───────────────┐   the product.
-│  gecko-engine/dist/<target>/│   firefox tarball + host/ + build.json
-└──────────────┬──────────────┘
-               │ copy
-┌─ 4 ─ docker or WSL ─────────┐   execution. ZERO build.
-│  receives the payload, runs │   No compiler, no source, no mach.
-└─────────────────────────────┘
+@rodrigopjax/w7s@0.4.0   ⇄   ghcr.io/rpjax/w7s-toolchain:0.4.0   (Firefox 153.2.0esr)
 ```
 
-Two sentences carry the whole design:
+Your repository declares two things: **what we change in Firefox**, and **what proves it
+works**. Everything else the tool already knows.
 
-> **Firefox's source is not our source.** It is a download identified by a commit —
-> like `node_modules`. Not versioned, not edited, not kept: if it disappears, fetch it
-> again. Our source is the ~45 files in box 1.
+Three artifacts, each named for what it is:
 
-> **The workshop exists because the target is Linux.** Windows→Linux cross-compilation
-> is not in Mozilla's tested matrix, so it would mean a hand-maintained sysroot and
-> toolchain. The workshop runs on *your* machine — your CPU, your RAM, your disk; only
-> the userland is Linux, because the output is Linux.
+```
+modifications ──▶ gecko-source ──▶ gecko-binary ──▶ sidecar-package ──▶ [dockup] released image
+   (your repo)      (a volume)       (a volume)      (dist/<target>/)
+```
 
-## Quick start
+Every command runs inside a container from that one image. Nothing compiles on the host, and
+nothing about the host's installed toolchains affects the result.
+
+## The manifest
+
+```jsonc
+{
+  "modifications": [
+    { "name": "projection runtime",
+      "description": "our C++ compiled inside Gecko",
+      "type": "directory",
+      "localPath": "./modifications/runtime",
+      "geckoPath": ".",
+      "replacesGeckoSource": false },
+
+    { "name": "runtime install points",
+      "description": "the Firefox files that call into the runtime",
+      "type": "directory",
+      "localPath": "./modifications/install",
+      "geckoPath": ".",
+      "replacesGeckoSource": true }
+  ],
+
+  "tests": [
+    { "name": "producer core",
+      "description": "hashing, encoding and the producer loop over a fake DOM",
+      "entryPoint": "./tests/producer/run.sh",
+      "runner": "bash",
+      "workingDirectory": "./tests/producer",
+      "classification": "release-gate",
+      "dependsOn": [],
+      "verifies": "build-output" }
+  ]
+}
+```
+
+A file replacing a Firefox file is held whole — no patches, no anchors. It costs a copy and
+buys two things: the reader sees the real code in context, and a Firefox upgrade produces a
+readable merge instead of a broken hunk. `replacesGeckoSource` is verified in both
+directions, per file, so the declaration cannot be silently wrong.
+
+## Commands
 
 ```bash
-cd gecko-engine            # anywhere under it; w7s walks up to find w7s.json
+cd gecko-engine                       # anywhere under it — w7s walks up to find w7s.json
 
-w7s gecko builder --pull   # fetch the pinned workshop image
-w7s gecko init             # create volumes, clone Firefox at the pin
-w7s gecko sync             # apply graft/ into the source volume
-w7s gecko build            # mach, in the workshop
-w7s gecko artifact         # package into dist/<target>/
-w7s gecko run --from obj   # fast dev loop, straight from the objdir
-
-w7s gecko status           # where everything is and what is stale
-w7s gecko where            # every path, on both sides
-w7s gecko test             # the declared test suites
+w7s gecko toolchain --pull            # the image this version requires
+w7s gecko make sidecar-package        # does whatever is needed, skips what is current
+w7s gecko test                        # the declared tests
+w7s gecko status                      # every artifact, and the next command to run
+w7s gecko paths                       # where everything lives, both spellings
 ```
 
-`w7s gecko ship --to dist` runs the chain and skips whatever is already fresh.
+`make` is the only production verb — naming the artifact is the interface, and there is no
+second way to do the same thing. `start` runs the sidecar locally for iteration; `shell`
+opens a shell in the toolchain container.
 
 ## What this tool does not do
 
-- **It does not build images.** dockup is the only image builder; w7s produces the
-  artifact and exposes it as a provider. See [docs/06-provider.md](docs/06-provider.md).
-- **It does not reimplement incremental builds.** `mach` and `sccache` know what to
-  recompile. w7s only decides *which mode* to invoke.
-- **It has no opinion about how tests are organized.** Suites are declared in the
-  manifest; their commands are opaque. See [docs/05-runner.md](docs/05-runner.md).
-- **It never stores authored work outside box 1.** A workspace that diverges is drift,
-  and drift is an error, not a state.
+- **It does not build images.** dockup is the only image builder; w7s produces the package
+  and exposes it as a provider — [docs/06-provider.md](docs/06-provider.md).
+- **It does not reimplement incremental builds.** The build system and the compiler cache know
+  what to recompile.
+- **It has no opinion about how tests are organized.** A test declares its runner, its entry
+  point and what it verifies; the command is opaque — [docs/05-tests.md](docs/05-tests.md).
+- **It infers nothing.** No derived defaults, no folder-name conventions, no silent
+  fallbacks. Where a default would be convenient the field is required instead.
 
 ## Documentation
 
-| doc | what it covers |
+| document | covers |
 |---|---|
-| [01-design.md](docs/01-design.md) | the four boxes, the seven laws, boundaries |
-| [02-manifest.md](docs/02-manifest.md) | `w7s.json` field by field |
-| [03-graft.md](docs/03-graft.md) | the three change kinds, the three states, the lock, the delta hash |
-| [04-cli.md](docs/04-cli.md) | verbs, arguments, exit codes |
-| [05-runner.md](docs/05-runner.md) | the test runner contract |
-| [06-provider.md](docs/06-provider.md) | how dockup consumes w7s |
-| [07-resilience.md](docs/07-resilience.md) | guarantees, locks, atomicity, line endings |
-| [08-testing.md](docs/08-testing.md) | how the tool itself is tested, and the law-to-test map |
-| [09-release.md](docs/09-release.md) | versioning, CHANGELOG, tag to npm |
+| [01-concepts.md](docs/01-concepts.md) | vocabulary, artifacts, the toolchain image, boundaries |
+| [02-manifest.md](docs/02-manifest.md) | `w7s.json`, field by field |
+| [03-applying.md](docs/03-applying.md) | how modifications are applied, and the guards |
+| [04-cli.md](docs/04-cli.md) | commands, options, error phases, exit codes, JSON contract |
+| [05-tests.md](docs/05-tests.md) | the test contract |
+| [06-provider.md](docs/06-provider.md) | integration with dockup |
+| [07-guarantees.md](docs/07-guarantees.md) | what is guaranteed, and by what mechanism |
+| [08-testing-w7s.md](docs/08-testing-w7s.md) | how this package is tested |
+| [09-release.md](docs/09-release.md) | versioning, the paired release, publishing |
 | [10-ci.md](docs/10-ci.md) | using w7s from a pipeline |
 
 ## License

@@ -1,7 +1,7 @@
 {
   "name": "@rodrigopjax/w7s",
   "version": "0.1.0",
-  "description": "Websete Speculum toolkit — pin, graft, build and package the Gecko engine from a declarative w7s.json",
+  "description": "Websete Speculum toolkit — apply modifications, compile, package and test the Speculum Gecko engine from a declarative w7s.json",
   "type": "module",
   "bin": {
     "w7s": "./dist/cli/index.js"

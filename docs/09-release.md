@@ -1,51 +1,66 @@
 # Release process
 
-Same shape as `@rodrigopjax/dockup`, on purpose: two packages with different release rituals
-is one ritual too many.
+The same shape as `@rodrigopjax/dockup`. Two packages with two different rituals is one
+ritual too many.
+
+## What a release contains
+
+Two artifacts, released together and never independently:
+
+| artifact | published to |
+|---|---|
+| `@rodrigopjax/w7s` | npm |
+| `ghcr.io/rpjax/w7s-toolchain:<version>` | the container registry |
+
+They carry the same version because the tool and its toolchain — including the pinned Firefox
+tree — must agree. A tool that could meet a toolchain it was not tested against reintroduces
+exactly the divergence this design removes.
+
+The CLI verifies this: it requires the toolchain tag matching its own version and refuses
+anything else. There is no override.
 
 ## Versioning
 
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html). For a tool whose surface is a
-CLI and a manifest, that means:
+Semantic versioning, read against the surface this tool actually exposes.
 
 | change | bump |
 |---|---|
-| a new verb, a new optional manifest field, a new flag | minor |
-| a renamed or removed flag, a required manifest field, a changed exit code or JSON key | **major** |
-| a bug fix with no surface change | patch |
-| `schema` in the manifest increments | **major** |
+| a new command, a new optional manifest field, a new option | minor |
+| a Firefox ESR patch release in the toolchain, with no surface change | minor |
+| a renamed option, a newly required manifest field, a changed exit code or JSON key | **major** |
+| **a Firefox ESR series change** | **major** |
+| a fix with no surface change | patch |
 
-Exit codes and `--json` keys are the API. dockup calls them in `prepare` steps and CI
-branches on them, so changing one silently breaks a pipeline that has no way to notice.
+A Firefox series change is major because every file declared `replacesGeckoSource` was written
+against the old tree and must be reviewed against the new one. The upgrade report names them,
+but the work is real, so the version number says so.
 
-While the version is `0.x`, minor may break — and the CHANGELOG says so explicitly for each
-one. `1.0.0` is when the manifest schema and the exit codes are considered settled.
+Exit codes and `--json` keys are the API: dockup calls them in `prepare` steps and pipelines
+branch on them.
 
-## CHANGELOG
+## Changelog
 
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Every entry names the user-visible
-effect, not the commit. `## [Unreleased]` accumulates during development and is renamed to
-the version with a date at release time.
+Keep a Changelog. Every entry names the user-visible effect, not the commit. A Firefox
+toolchain change is always an entry, with the ESR version in it.
 
-Entries under `### Added` / `### Changed` / `### Fixed` / `### Removed`. A release with no
-CHANGELOG entry is a release nobody can adopt safely.
+While the version is `0.x`, minor may break, and each entry says so.
 
 ## Cutting a release
 
 ```bash
-npm run lint && npm test          # same gates CI will run
-npm run test:engine               # the tier CI cannot run — needs a workshop
+npm run lint && npm test
+npm run test:engine                # the tier CI cannot run — needs a container engine
 # move [Unreleased] to [x.y.z] - YYYY-MM-DD in CHANGELOG.md
-npm version <major|minor|patch>   # bumps package.json and creates the commit + tag
+npm version <major|minor|patch>
 git push --follow-tags
 ```
 
-`npm version` creates the `vx.y.z` tag. Pushing it is what triggers publication.
+The tag is what triggers publication.
 
 ## What CI does with the tag
 
-`.github/workflows/ci.yml` runs `lint`, `test-unit`, `test-e2e` and `test-windows` on every
-push and pull request to `main`. The `publish` job is gated:
+`lint`, `test-unit`, `test-e2e` and `test-windows` run on every push and pull request. The
+publishing job is gated:
 
 ```yaml
 publish:
@@ -53,44 +68,45 @@ publish:
   needs: [lint, test-unit, test-e2e, test-windows]
 ```
 
-So a tag on red never ships. The job then:
+A tag on red never ships. The job builds and pushes the toolchain image first, then publishes
+the package — in that order, so a published CLI never points at a tag that does not exist.
 
 ```yaml
-- uses: actions/setup-node@v4
-  with:
-    node-version: 22
-    registry-url: https://registry.npmjs.org
 - run: npm ci
 - run: npm run build
+- run: docker build -t ghcr.io/rpjax/w7s-toolchain:${{ steps.version.outputs.value }} ./toolchain
+- run: docker push ghcr.io/rpjax/w7s-toolchain:${{ steps.version.outputs.value }}
 - run: npm publish --provenance --access public
   env:
     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
 
-Three details that matter:
+Three details:
 
-- **`--provenance`** attaches a signed attestation linking the published tarball to this
-  commit and this workflow run. It requires `permissions: id-token: write` at the workflow
-  level, which is already set.
-- **`--access public`** is explicit even though `publishConfig.access` says the same, because
-  a scoped package defaults to restricted and the failure mode is a silent private publish.
-- **`prepublishOnly`** runs `build && test && lint` again locally, so a manual `npm publish`
-  from a laptop cannot skip the gates either.
+- **`--provenance`** attaches a signed attestation linking the tarball to this commit and this
+  workflow run. It needs `permissions: id-token: write` at the workflow level.
+- **`--access public`** is explicit even though `publishConfig` says the same, because a
+  scoped package defaults to restricted and the failure mode is a silent private publish.
+- **`prepublishOnly`** runs build, test and lint again, so a manual publish from a laptop
+  cannot skip the gates.
+
+Note that this repository builds its own toolchain image, which is not a contradiction of the
+boundary in [06-provider.md](06-provider.md): that boundary is about images in a *consumer's*
+repository. A package building the image it ships is a package building its own artifact.
 
 ## Secrets
 
-One: `NPM_TOKEN`, an npm **automation** token with publish rights on the `@rodrigopjax`
-scope, stored as a repository secret. Automation tokens bypass 2FA prompts, which is what a
-non-interactive publish needs; a classic token with 2FA enforced will fail in CI.
+| secret | what it is |
+|---|---|
+| `NPM_TOKEN` | an npm automation token with publish rights on the `@rodrigopjax` scope — a classic token with enforced 2FA fails in CI |
+| registry write | the workflow's own token, via `permissions: packages: write` |
 
 ## Branch protection
 
-`main` requires the four checks to pass and a linear history — the same configuration as
-npm-dockup. Releases are cut from `main`, never from a branch.
+`main` requires the four checks and a linear history. Releases are cut from `main`.
 
 ## Published contents
 
-`package.json` `files` limits the tarball to `dist`, `schema`, `examples`, `docs`, plus
-`LICENSE`, `README.md` and `CHANGELOG.md`. `src` and `test` are not shipped; `schema` and
-`docs` are, because a consumer validating a manifest offline needs the schema, and because
-`w7s --help` should not be the only documentation a user can reach.
+`files` limits the npm tarball to `dist`, `schema`, `examples`, `docs`, plus `LICENSE`,
+`README.md` and `CHANGELOG.md`. Sources and tests are not shipped; the schema is, because a
+consumer validating a manifest offline needs it.

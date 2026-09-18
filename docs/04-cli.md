@@ -1,169 +1,177 @@
-# CLI surface
+# Command reference
 
-Grammar: **`w7s <area> <verb> [options]`**. `gecko` is the first area; the manifest's
-`kind` selects the driver, so a second area is a new driver and not a new tool.
+Grammar: **`w7s <area> <command> [arguments]`**. `gecko` is the area for the Speculum Gecko
+engine; the manifest tells the tool nothing about which area it is, because the command line
+already said.
 
-The manifest is found by walking up from the current directory. `--manifest` points at one
-directly.
+## Options
 
-## Global options
+Every option is spelled out. There are no positional surprises and no inferred defaults.
 
 | option | effect |
 |---|---|
 | `--manifest <path>` | use this manifest instead of discovering one |
-| `--target <id>` | compilation target; defaults to `defaultTarget` |
-| `--run <name>` | execution target; defaults to `defaultRun` |
-| `--json` | structured output, on **every** verb |
+| `--json` | machine-readable output, on every command |
 | `-q, --quiet` | errors and warnings only |
 | `-v, --verbose` | debug logging |
-| `--dry-run` | write nothing; print what would happen, on every verb that writes |
-| `-y, --yes` | assume yes; required for destructive verbs outside a tty |
+| `--dry-run` | write nothing; print what would happen |
+| `-y, --yes` | assume yes; required for refusing commands outside a terminal |
 | `--no-color` | plain output |
-| `--timeout <s>` | per-step timeout |
-| `-V, --version` | print version |
+| `--timeout <seconds>` | per-step timeout |
+| `-V, --version` | print the w7s version and the toolchain image tag it requires |
 
-## Verbs
+## Commands
 
-| verb | options | what it does |
+### Producing
+
+| command | what it does |
+|---|---|
+| `w7s gecko make <artifact>` | produces the named artifact, doing whatever it needs and skipping what is already current |
+
+One verb. Naming the artifact you want is the whole interface:
+
+```
+w7s gecko make gecko-source      # apply the modifications, nothing more
+w7s gecko make gecko-binary      # applies, then compiles
+w7s gecko make sidecar-package   # applies, compiles, then packages
+```
+
+There are no separate `apply`, `compile` and `package` commands. Two ways to do one thing is
+a defect in a command line: it forces every reader to learn which one a script used and why.
+The chain is fixed, printed by `w7s gecko status`, and not inferred per run.
+
+`--only` restricts a `make` to the named artifact's own step, failing instead of producing
+what it depends on:
+
+```
+w7s gecko make gecko-binary --only    # fails if gecko-source is not current
+```
+
+### Inspecting
+
+| command | what it does |
+|---|---|
+| `w7s gecko status` | every artifact, whether it is current, the production chain, and the next command to run |
+| `w7s gecko status --upgrades` | the files upstream changed since our replacements were written, with diffs |
+| `w7s gecko paths [--artifact <name>]` | where each artifact lives, in both Windows and container spelling |
+| `w7s gecko fingerprint` | the fingerprint of the modified tree |
+| `w7s gecko validate` | the manifest against the schema, the modifications against the pristine tree |
+
+### Running
+
+| command | what it does |
+|---|---|
+| `w7s gecko start` | starts the sidecar from `gecko-binary` for local iteration |
+| `w7s gecko stop` | stops what `start` started |
+| `w7s gecko test [selectors]` | runs declared tests — [05-tests.md](05-tests.md) |
+| `w7s gecko shell [-- command]` | a shell in a toolchain container, with the tree mounted |
+
+### Maintaining
+
+The toolchain image's digest is verified by **every** command that starts a container, not
+only by `toolchain`. That is a guarantee, not a flag.
+
+
+| command | what it does |
+|---|---|
+| `w7s gecko toolchain --pull` | pulls the toolchain image this w7s version requires |
+| `w7s gecko capture` | a working-tree edit into a modification — [03-applying.md](03-applying.md) |
+| `w7s gecko reset <artifact>` | discards an artifact so the next `make` rebuilds it |
+
+There is no `doctor`: `status` is for a person, `validate` is for a pipeline, and in the
+Speculum repository "doctor" already means diagnosing a capture.
+
+There is no `init`. `make gecko-source` creates the working tree if it does not exist; a
+separate command for the first run is a state the user has to remember.
+
+There is no `artifacts` command: the production chain is part of `status`, where the reader is
+already looking.
+
+Eleven commands. Every one of them is a verb that names its object, and none of them does
+what another one does.
+
+## Error phases
+
+Failures carry a phase, and the exit code is derived from it rather than chosen at the throw
+site. One class of failure always exits the same way.
+
+| phase | meaning | exit |
 |---|---|---|
-| `builder` | `--pull`, `--verify` | fetch the workshop image, verify tag and digest |
-| `init` | `--force` | create volumes, clone Firefox at the pin, verify the commit |
-| `sync` | `--strict`, `--adopt`, `--only <change>` | apply the graft (three states) |
-| `build` | `--mode auto\|full\|binaries\|export`, `--jobs N`, `--no-sync` | run `mach` in the workshop |
-| `artifact` | `--out <path>`, `--check`, `--path`, `--json` | package the browser and publish the host into `dist/<target>/` |
-| `dist` | `--list`, `--pull <ref>`, `--verify` | inspect a payload, or fetch one built by CI |
-| `run` | `--from obj\|dist`, `--port N`, `--detach` | start the payload on the execution target |
-| `stop` | | tear down what `run` started |
-| `shell` | `-- <cmd>` | open a shell in the workshop |
-| `adopt` | `--path <p>`, `--as inject\|patch`, `--all` | workspace drift into `graft/hooks` |
-| `test` | see [05-runner.md](05-runner.md) | run declared suites |
-| `status` | `--json` | the chain and what is stale |
-| `where` | `--what src\|obj\|dist\|bin` | every path, on both sides |
-| `validate` | `--offline`, `--fix` | invariants, builder digest, VM memory |
-| `lock` | `--check` | regenerate `graft.lock.json` |
-| `pin` | `--set <tag>`, `--dry-run` | move the pin and print the rebase report |
-| `delta` | | print the delta hash, for tags and labels |
-| `reset` | `--volumes a,b`, `--all` | destroy volumes; lists them first |
-| `ship` | `--to src\|obj\|dist` | run the chain, skipping whatever is fresh |
+| `Cli` | bad arguments | 2 |
+| `Manifest` | missing, unparseable, or schema-invalid | 2 |
+| `WorkingTree` | a file was edited in the working tree | 3 |
+| `Declaration` | a modification contradicts the pristine tree, or two entries collide | 6 |
+| `Toolchain` | container engine unavailable, image missing, memory insufficient | 4 |
+| `NotCurrent` | an artifact exists but is behind (raised only under `--check`) | 5 |
+| `Test` | a release-gate test failed | 7 |
+| `Execution` | an invoked command failed, or an unexpected error | 1 |
 
-`doctor` is deliberately absent: in the Speculum repository that word already means
-"diagnose a capture". Humans use `status`, machines use `validate`.
+## Exit codes
 
-`promote` is **specified but not implemented**, and named here so nobody assumes it was
-forgotten. It would convert the graft into real commits on `source.fork.branch`, which is
-the day the overlay model ends: `sync` becomes `git am`, `adopt` becomes `git status`, and
-the lock becomes unnecessary. The manifest already records the fork remote and branch so
-that decision costs a verb and not a redesign. It stays deferred until after Speculum V1.
+Stable, because dockup and pipelines branch on them.
 
-## `--mode auto`
+| code | meaning |
+|---|---|
+| 0 | success |
+| 1 | an invoked command failed |
+| 2 | bad arguments or bad manifest |
+| 3 | the working tree holds an uncaptured edit |
+| 4 | the toolchain is unavailable here |
+| 5 | an artifact is not current (`--check`) |
+| 6 | a declaration is wrong |
+| 7 | a release-gate test failed |
 
-The only inference the tool is allowed, and it is derived from what `sync` actually wrote,
-never from a guess:
+Every failure prints the cause and, on the next line, the command that addresses it.
 
-- wrote something matching `builder.exportTriggers` → `mach build pre-export export`, then `binaries`
-- wrote only `.cpp` / `.h` → `binaries`
-- the pin or the mozconfig changed, or the `obj` volume is empty → `mach build`
-
-What to recompile remains `mach` plus `sccache`. Going further than mode selection would be
-writing a second compiler, and a worse one.
-
-## Staleness
-
-Each stage stamps the delta that produced it. `status` compares stamps and names the next
-step — including when the next step is not its own:
+## Status output
 
 ```
 $ w7s gecko status
 
-  graft      7 changes · 41 files                            a3f19c
-  builder    speculum/gecko-builder:153.2.0esr-1             ok      digest matches
-  src        FIREFOX_153_2_0esr @ feec67e                     ok      a3f19c
-  obj        16 GB · built 2h ago                             BEHIND  2 files since
-  dist       linux-x64 · 720 MB                               BEHIND  previous build
-  image      speculum/gecko:dev                               BEHIND  label 7c2b1e
-  stack dev  sidecar up · /ready ok                           running 7c2b1e
+  toolchain         ghcr.io/rpjax/w7s-toolchain:0.4.0        ok        digest verified
+  gecko-source      Firefox 153.2.0esr + 45 files            current   a3f19c7b21d4
+  gecko-binary      built 2 hours ago                        behind    2 files since
+  sidecar-package   dist/linux-x64, 720 MB                   behind    previous binary
+  released image    speculum/gecko:dev                       behind    label 7c2b1e09f8aa
 
-  next -> w7s gecko build
+  next -> w7s gecko make sidecar-package
 ```
 
-Stamps are written twice: in `.w7s/state.json` on the Windows side and inside the volume.
-If Windows says "built" and the volume stamp is gone, the volume was destroyed out of band,
-and the stage is reported cold rather than lying.
+`released image` is observed, not produced: the tool reads the label and the readiness probe.
+Its "next" line can name a dockup command, because the boundary is real.
 
-## Error phases
-
-Every failure is raised with a phase, and the exit code is derived from the phase rather
-than chosen at the throw site. This is dockup's `exitCodeForPhase` pattern, and it is what
-makes a given class of failure always exit the same way.
-
-| phase | meaning | exit |
-|---|---|---|
-| `CLI` | bad arguments | 2 |
-| `MANIFEST` | manifest missing, unparseable, or schema-invalid | 2 |
-| `GRAFT` | drift in the workspace | 3 |
-| `INVARIANT` | a law was violated (`validate`, ambiguous anchor) | 6 |
-| `ENGINE` | container engine or image unavailable, memory insufficient | 4 |
-| `STALE` | a stage exists but is behind (only raised under `--check`) | 5 |
-| `TEST` | a declared suite went red | 7 |
-| `RUNTIME` | an invoked command failed, or an unexpected error | 1 |
-
-## Exit codes
-
-Stable, because dockup and CI consume them.
-
-| code | meaning |
-|---|---|
-| 0 | ok |
-| 1 | execution failure — an invoked command returned non-zero |
-| 2 | invalid usage, or invalid manifest |
-| 3 | **drift** — the workspace diverged from the graft |
-| 4 | workshop or target unavailable — docker down, image missing, insufficient memory |
-| 5 | **stale** — with `--check`: it exists but is behind |
-| 6 | invariant violated (`validate`) |
-| 7 | **test red** — distinct from 1, because the suite ran and failed |
-
-As in dockup, codes are derived from an error phase rather than thrown ad hoc, so a given
-class of failure always exits the same way.
-
-Every failure prints, besides the cause, **one line saying what to do next**. An error that
-does not name the next step is how a directory of 121 rescue scripts comes into existence.
+Currency is recorded twice — once in `.w7s/state.json` beside the repository and once inside
+the volume. If the repository says an artifact is current and the volume's record is gone,
+the volume was destroyed out of band and the artifact is reported missing rather than
+current.
 
 ## The `--json` contract
 
-`--json` guarantees that stdout carries exactly one JSON document and nothing else.
-Subprocess output is captured, never leaked onto stdout — the same guarantee dockup makes.
+Exactly one JSON document on stdout. Subprocess output is captured, never interleaved.
 
 Success:
 
 ```jsonc
-{
-  "ok": true,
-  "command": "gecko sync",
-  "delta": "a3f19c",
-  "elapsedSec": 1.4,
-  "result":    { /* verb-specific; documented per verb */ },
-  "report":    { /* the same data the human summary renders */ },
-  "nextSteps": ["w7s gecko build"]
-}
+{ "ok": true,
+  "command": "gecko apply",
+  "fingerprint": "a3f19c7b21d4",
+  "elapsedSeconds": 1.4,
+  "result": { "filesWritten": 2, "filesUnchanged": 43 },
+  "nextSteps": ["w7s gecko make gecko-binary"] }
 ```
 
 Failure:
 
 ```jsonc
-{
-  "ok": false,
-  "command": "gecko sync",
-  "phase": "GRAFT",
-  "message": "3 files in the workspace diverge from the graft.",
-  "hint": "w7s gecko adopt --all, then retry.",
-  "detail": ["docshell/base/BrowsingContext.cpp", "…"],
-  "cause": null,
-  "elapsedSec": 0.6,
-  "exitCode": 3
-}
+{ "ok": false,
+  "command": "gecko apply",
+  "phase": "WorkingTree",
+  "message": "3 files in the working tree differ from the manifest.",
+  "hint": "w7s gecko capture --all --into <modification>",
+  "detail": ["docshell/base/BrowsingContext.cpp", "dom/base/Document.cpp", "dom/base/Document.h"],
+  "elapsedSeconds": 0.6,
+  "exitCode": 3 }
 ```
 
-Two rules that make this usable as an API: `ok` is always present and always a boolean, and
-`phase`/`exitCode` are always present on failure. A consumer can branch on `jq -e '.ok'`
-without knowing which verb ran. `--with-logs` adds captured subprocess output under
-`result.logs`, off by default so the document stays small.
+`ok` is always present and always boolean; `phase` and `exitCode` are always present on
+failure. A consumer can branch on `ok` without knowing which command ran.

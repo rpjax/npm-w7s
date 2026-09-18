@@ -1,74 +1,71 @@
-# Provider contract — how dockup consumes w7s
+# Integration with dockup
 
-**dockup is the only image builder** (L5). w7s produces the artifact and exposes it; it
-never issues `docker build`, not for the product image and not for the workshop image.
-Fragmenting image generation would decentralize deployment, which is the opposite of the
-goal.
+**dockup is the only image builder.** w7s produces `sidecar-package` and exposes it; it never
+issues a build. Splitting image generation across two tools would decentralize deployment,
+which is the opposite of the intent.
 
-## The four commands dockup needs
+The toolchain image is not an exception: it belongs to this package, is built by this
+package's own CI, and is only ever pulled.
+
+## What dockup calls
 
 ```bash
-w7s gecko ship --to dist        # ensure a fresh payload; non-zero aborts the deploy
-w7s gecko artifact --path       # absolute path to the tarball
-w7s gecko artifact --json       # { path, sha256, bytes, delta, pin, target, stale }
-w7s gecko delta                 # "a3f19c" — for tags and labels
+w7s gecko make sidecar-package                      # ensure it is current; non-zero aborts the deploy
+w7s gecko paths --artifact sidecar-package          # absolute path to the package directory
+w7s gecko paths --artifact sidecar-package --json   # { path, sizeBytes, sha256, fingerprint, w7sVersion, target }
+w7s gecko fingerprint                               # "a3f19c7b21d4" — for the image label
 ```
 
-That is the whole surface. Everything else about w7s is irrelevant to dockup.
+Four commands. Nothing else about w7s is dockup's concern.
 
-## On the dockup side
+## What dockup declares
 
 ```jsonc
 { "id": "sidecar",
   "context": "gecko-engine",
   "dockerfile": "gecko-engine/image/Dockerfile",
 
-  "prepare": ["w7s gecko ship --to dist"],
-  "labels":  { "speculum.gecko.delta": "$(w7s gecko delta)" } }
+  "prepare": ["w7s gecko make sidecar-package"],
+  "labels":  { "speculum.gecko.modifications": "$(w7s gecko fingerprint)" } }
 ```
 
-Because w7s runs on Windows, the payload is already on Windows at
-`gecko-engine/dist/<target>/`, inside the build context. The Dockerfile's `COPY` stays as
-it is; no BuildKit `--build-context` is needed.
+The package already sits in `dist/<target>/` inside the build context, so the Dockerfile's
+`COPY` needs nothing special.
 
 Three things this replaces:
 
-- **A paragraph of prose.** The deploy README previously instructed a human to run
-  `wsl -d Ubuntu -e bash gecko-engine/scripts/pack-gecko-dist.sh` *before* `dockup deploy`.
-  If they forgot, the stack came up with yesterday's Firefox and said nothing. As a
+- **A paragraph of prose.** The deploy README used to instruct a human to run a packaging
+  script before deploying. Forgetting meant shipping yesterday's Firefox, silently. As a
   `prepare` step, forgetting is impossible and failing stops the deploy.
-- **3.2 GB of generated files inside the source tree** — a raw `dist/bin` copy full of
-  dangling symlinks pointing into an objdir that only existed inside WSL. Now: one payload
-  directory per target.
-- **An unanswerable question in production.** With the delta label, you can inspect a
-  running container and know exactly which set of Gecko changes it carries.
+- **Generated files inside the source tree.** Previously a raw copy of the build output, with
+  dangling symlinks pointing into a build directory that existed only inside WSL.
+- **An unanswerable question in production.** With the label, a running container states
+  which Firefox version and which modifications it carries.
 
-## What dockup needs to gain
+## What dockup needs to support
 
 One feature: `prepare`, a list of commands run before a container's build, where a non-zero
 exit aborts. Command substitution in `labels` is desirable and optional.
 
-dockup also gains the workshop image as a build target that is never deployed.
-
-## Observing without producing
-
-`w7s gecko status` reports the image and the stack, by reading the image label and the
-container's readiness probe. It produces neither. Observing is not fragmenting — and it is
-what allows the status output to end with a next step that belongs to another tool:
-
-```
-  next -> dockup deploy dev
-```
-
-## Payload layout
+## Package layout
 
 ```
 dist/linux-x64/
-  firefox-dist.tar.gz      the browser carrying our delta
-  host/                    orchestrator + supervisor, self-contained linux-x64
-  build.json               delta, pin, target, timestamp, sha256 per piece
+  firefox.tar.gz    the browser carrying our modifications
+  build.json        fingerprint, w7s version, Firefox version, target, timestamp, hashes
 ```
 
-`host/` is published **from Windows** with `dotnet publish -r linux-x64 --self-contained`.
-That needs no workshop at all, because .NET is managed and the target runtime pack ships
-prebuilt. Only the browser needs a Linux userland.
+Two files, and nothing else. The managed host binaries are **not** part of the package: the
+product Dockerfile already builds them in its own stage, which is where a managed build
+belongs — it needs no Gecko toolchain and no pristine tree. Adding them here would mean w7s
+holding a list of the repository's project files, which is knowledge it has no reason to own
+and one more thing to keep in step.
+
+So the boundary is: w7s owns the browser, dockup owns the image and everything managed in
+it.
+
+## Observation without production
+
+`w7s gecko status` reports the released image and the running stack by reading the image
+label and the readiness probe. It produces neither, and it says so by naming a dockup command
+as the next step when the next step is dockup's.
