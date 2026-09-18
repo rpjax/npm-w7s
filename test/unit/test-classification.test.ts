@@ -29,9 +29,7 @@ describe("test classification", () => {
     assert.throws(
       () => validateManifest(baseManifest(releaseGate({ extraPackages: ["curl"] }))),
       (err: unknown) =>
-        err instanceof W7sError &&
-        err.phase === "Manifest" &&
-        /extraPackages/.test(err.message),
+        err instanceof W7sError && err.phase === "Manifest" && /extraPackages/.test(err.message),
     );
   });
 
@@ -39,9 +37,7 @@ describe("test classification", () => {
     assert.throws(
       () => validateManifest(baseManifest(releaseGate({ networkAccess: true }))),
       (err: unknown) =>
-        err instanceof W7sError &&
-        err.phase === "Manifest" &&
-        /networkAccess/.test(err.message),
+        err instanceof W7sError && err.phase === "Manifest" && /networkAccess/.test(err.message),
     );
   });
 
@@ -49,16 +45,12 @@ describe("test classification", () => {
     assert.throws(
       () => validateManifest(baseManifest(releaseGate({ runner: "ruby" }))),
       (err: unknown) =>
-        err instanceof W7sError &&
-        err.phase === "Manifest" &&
-        /runner/.test(err.message),
+        err instanceof W7sError && err.phase === "Manifest" && /runner/.test(err.message),
     );
   });
 
   it("accepts release-gate with an allowed runner", () => {
-    assert.doesNotThrow(() =>
-      validateManifest(baseManifest(releaseGate({ runner: "python3" }))),
-    );
+    assert.doesNotThrow(() => validateManifest(baseManifest(releaseGate({ runner: "python3" }))));
   });
 
   it("allows diagnostic tests to declare extraPackages and networkAccess", () => {

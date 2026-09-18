@@ -93,18 +93,15 @@ export function expandModifications(
   const claimed = new Map<string, ExpandedFile>();
 
   for (const mod of modifications) {
-    const files = mod.type === "directory" ? expandDirectory(mod, manifestDir) : expandFiles(mod, manifestDir);
+    const files =
+      mod.type === "directory" ? expandDirectory(mod, manifestDir) : expandFiles(mod, manifestDir);
     for (const file of files) {
       const prior = claimed.get(file.geckoPath);
       if (prior) {
-        fail(
-          "Declaration",
-          `Two modifications claim geckoPath "${file.geckoPath}".`,
-          {
-            detail: [`"${prior.modificationName}"`, `"${file.modificationName}"`],
-            hint: "Give each destination to exactly one modification entry.",
-          },
-        );
+        fail("Declaration", `Two modifications claim geckoPath "${file.geckoPath}".`, {
+          detail: [`"${prior.modificationName}"`, `"${file.modificationName}"`],
+          hint: "Give each destination to exactly one modification entry.",
+        });
       }
       claimed.set(file.geckoPath, file);
       expanded.push(file);

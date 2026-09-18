@@ -30,14 +30,11 @@ function findModification(manifest: W7sManifest, name: string): Modification {
   return mod!;
 }
 
-function localDestFor(
-  mod: Modification,
-  manifestDir: string,
-  geckoPath: string,
-): string {
+function localDestFor(mod: Modification, manifestDir: string, geckoPath: string): string {
   if (mod.type === "directory") {
     const base = resolve(manifestDir, mod.localPath);
-    const geckoBase = mod.geckoPath === "." || mod.geckoPath === "" ? "" : mod.geckoPath.replace(/\\/g, "/");
+    const geckoBase =
+      mod.geckoPath === "." || mod.geckoPath === "" ? "" : mod.geckoPath.replace(/\\/g, "/");
     let rel = geckoPath.replace(/\\/g, "/");
     if (geckoBase && (rel === geckoBase || rel.startsWith(`${geckoBase}/`))) {
       rel = rel === geckoBase ? "" : rel.slice(geckoBase.length + 1);
@@ -45,15 +42,13 @@ function localDestFor(
     return rel ? join(base, ...rel.split("/")) : base;
   }
 
-  const mapping = mod.files.find((f) => f.geckoPath.replace(/\\/g, "/") === geckoPath.replace(/\\/g, "/"));
+  const mapping = mod.files.find(
+    (f) => f.geckoPath.replace(/\\/g, "/") === geckoPath.replace(/\\/g, "/"),
+  );
   if (!mapping) {
-    fail(
-      "Declaration",
-      `Modification "${mod.name}" does not declare geckoPath "${geckoPath}".`,
-      {
-        hint: "Add a files mapping, or capture into a directory modification.",
-      },
-    );
+    fail("Declaration", `Modification "${mod.name}" does not declare geckoPath "${geckoPath}".`, {
+      hint: "Add a files mapping, or capture into a directory modification.",
+    });
   }
   return resolve(manifestDir, mapping!.localPath);
 }
@@ -63,14 +58,8 @@ function localDestFor(
  * then confirm declared == current byte-for-byte.
  */
 export function captureWorkingTreeEdit(options: CaptureOptions): CaptureResult {
-  const {
-    manifest,
-    manifestDir,
-    workingTreeRoot,
-    geckoPath,
-    intoModification,
-    existsInPristine,
-  } = options;
+  const { manifest, manifestDir, workingTreeRoot, geckoPath, intoModification, existsInPristine } =
+    options;
 
   const mod = findModification(manifest, intoModification);
   const src = resolveInTree(workingTreeRoot, geckoPath);
@@ -100,10 +89,14 @@ export function captureWorkingTreeEdit(options: CaptureOptions): CaptureResult {
     // After LF normalize of declared, compare against LF-normalized current for equality check.
     const currentLf = normalizeToLf(current);
     if (!buffersEqual(declared, currentLf)) {
-      fail("Declaration", `Capture of "${geckoPath}" is incomplete — declared does not equal current.`, {
-        detail: relative(manifestDir, dest),
-        hint: "Inspect the captured file and the working-tree copy.",
-      });
+      fail(
+        "Declaration",
+        `Capture of "${geckoPath}" is incomplete — declared does not equal current.`,
+        {
+          detail: relative(manifestDir, dest),
+          hint: "Inspect the captured file and the working-tree copy.",
+        },
+      );
     }
     // Write LF-normalized declared back so future compares match.
     // The working tree should also be LF; write declared (LF) to working tree via the same path.
@@ -112,9 +105,13 @@ export function captureWorkingTreeEdit(options: CaptureOptions): CaptureResult {
   // Ensure working tree matches declared (LF).
   const currentLf = normalizeToLf(current);
   if (!buffersEqual(declared, currentLf)) {
-    fail("Declaration", `Capture of "${geckoPath}" is incomplete — declared does not equal current.`, {
-      hint: "Inspect the captured file and the working-tree copy.",
-    });
+    fail(
+      "Declaration",
+      `Capture of "${geckoPath}" is incomplete — declared does not equal current.`,
+      {
+        hint: "Inspect the captured file and the working-tree copy.",
+      },
+    );
   }
 
   return { captured: [geckoPath] };

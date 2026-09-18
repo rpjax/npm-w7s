@@ -56,17 +56,13 @@ function validateTestSemantics(test: TestDeclaration, index: number): void {
 
   if (test.classification === "release-gate") {
     if (test.extraPackages !== undefined && test.extraPackages.length > 0) {
-      fail(
-        "Manifest",
-        `${label}: release-gate tests may not declare extraPackages.`,
-        {
-          hint: "Move the test to classification \"diagnostic\", or remove extraPackages.",
-        },
-      );
+      fail("Manifest", `${label}: release-gate tests may not declare extraPackages.`, {
+        hint: 'Move the test to classification "diagnostic", or remove extraPackages.',
+      });
     }
     if (test.networkAccess === true) {
       fail("Manifest", `${label}: release-gate tests may not declare networkAccess.`, {
-        hint: "Move the test to classification \"diagnostic\", or remove networkAccess.",
+        hint: 'Move the test to classification "diagnostic", or remove networkAccess.',
       });
     }
     if (!releaseGateRunnerAllowed(test.runner)) {

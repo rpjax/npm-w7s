@@ -30,10 +30,14 @@ describe("json contract", () => {
     const clock = new FakeClock();
     const startedAt = clock.nowMs();
     clock.advance(600);
-    const err = new W7sError("WorkingTree", "3 files in the working tree differ from the manifest.", {
-      hint: "w7s gecko capture --all --into <modification>",
-      detail: ["dom/base/Document.cpp"],
-    });
+    const err = new W7sError(
+      "WorkingTree",
+      "3 files in the working tree differ from the manifest.",
+      {
+        hint: "w7s gecko capture --all --into <modification>",
+        detail: ["dom/base/Document.cpp"],
+      },
+    );
     const payload = failurePayload(err, "gecko make gecko-source", startedAt);
 
     assert.equal(typeof payload.ok, "boolean");
@@ -59,7 +63,11 @@ describe("json contract", () => {
       "Execution",
     ] as const;
     for (const phase of phases) {
-      const payload = failurePayload(new W7sError(phase, `${phase} failed`), "gecko status", Date.now());
+      const payload = failurePayload(
+        new W7sError(phase, `${phase} failed`),
+        "gecko status",
+        Date.now(),
+      );
       assert.equal(typeof payload.ok, "boolean");
       assert.equal(payload.ok, false);
       assert.equal(payload.phase, phase);

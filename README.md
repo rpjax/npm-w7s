@@ -5,7 +5,7 @@ modifications to Firefox, compile, package, run and test — driven by a declara
 `w7s.json` with two keys.
 
 W7S stands for Websete Speculum. The package is independent — its own repository, its own
-version, installed globally — and it is *tailored* to Speculum. It is not a generic build
+version, installed globally — and it is _tailored_ to Speculum. It is not a generic build
 orchestrator and does not pretend to be one.
 
 ```bash
@@ -39,31 +39,37 @@ nothing about the host's installed toolchains affects the result.
 ```jsonc
 {
   "modifications": [
-    { "name": "projection runtime",
+    {
+      "name": "projection runtime",
       "description": "our C++ compiled inside Gecko",
       "type": "directory",
       "localPath": "./modifications/runtime",
       "geckoPath": ".",
-      "replacesGeckoSource": false },
+      "replacesGeckoSource": false,
+    },
 
-    { "name": "runtime install points",
+    {
+      "name": "runtime install points",
       "description": "the Firefox files that call into the runtime",
       "type": "directory",
       "localPath": "./modifications/install",
       "geckoPath": ".",
-      "replacesGeckoSource": true }
+      "replacesGeckoSource": true,
+    },
   ],
 
   "tests": [
-    { "name": "producer core",
+    {
+      "name": "producer core",
       "description": "hashing, encoding and the producer loop over a fake DOM",
       "entryPoint": "./tests/producer/run.sh",
       "runner": "bash",
       "workingDirectory": "./tests/producer",
       "classification": "release-gate",
       "dependsOn": [],
-      "verifies": "build-output" }
-  ]
+      "verifies": "build-output",
+    },
+  ],
 }
 ```
 
@@ -101,18 +107,18 @@ opens a shell in the toolchain container.
 
 ## Documentation
 
-| document | covers |
-|---|---|
-| [01-concepts.md](docs/01-concepts.md) | vocabulary, artifacts, the toolchain image, boundaries |
-| [02-manifest.md](docs/02-manifest.md) | `w7s.json`, field by field |
-| [03-applying.md](docs/03-applying.md) | how modifications are applied, and the guards |
-| [04-cli.md](docs/04-cli.md) | commands, options, error phases, exit codes, JSON contract |
-| [05-tests.md](docs/05-tests.md) | the test contract |
-| [06-provider.md](docs/06-provider.md) | integration with dockup |
-| [07-guarantees.md](docs/07-guarantees.md) | what is guaranteed, and by what mechanism |
-| [08-testing-w7s.md](docs/08-testing-w7s.md) | how this package is tested |
-| [09-release.md](docs/09-release.md) | versioning, the paired release, publishing |
-| [10-ci.md](docs/10-ci.md) | using w7s from a pipeline |
+| document                                    | covers                                                     |
+| ------------------------------------------- | ---------------------------------------------------------- |
+| [01-concepts.md](docs/01-concepts.md)       | vocabulary, artifacts, the toolchain image, boundaries     |
+| [02-manifest.md](docs/02-manifest.md)       | `w7s.json`, field by field                                 |
+| [03-applying.md](docs/03-applying.md)       | how modifications are applied, and the guards              |
+| [04-cli.md](docs/04-cli.md)                 | commands, options, error phases, exit codes, JSON contract |
+| [05-tests.md](docs/05-tests.md)             | the test contract                                          |
+| [06-provider.md](docs/06-provider.md)       | integration with dockup                                    |
+| [07-guarantees.md](docs/07-guarantees.md)   | what is guaranteed, and by what mechanism                  |
+| [08-testing-w7s.md](docs/08-testing-w7s.md) | how this package is tested                                 |
+| [09-release.md](docs/09-release.md)         | versioning, the paired release, publishing                 |
+| [10-ci.md](docs/10-ci.md)                   | using w7s from a pipeline                                  |
 
 ## License
 

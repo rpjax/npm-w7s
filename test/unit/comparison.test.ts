@@ -22,7 +22,10 @@ describe("comparison outcomes", () => {
     copyPristineTiny(pristine);
     copyPristineTiny(tree);
     mkdirSync(join(root, "mods", "dom", "base"), { recursive: true });
-    writeFileSync(join(root, "mods", "dom", "base", "Document.cpp"), "// declared Document.cpp\nint x = 2;\n");
+    writeFileSync(
+      join(root, "mods", "dom", "base", "Document.cpp"),
+      "// declared Document.cpp\nint x = 2;\n",
+    );
 
     const modifications: Modification[] = [
       {

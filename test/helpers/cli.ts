@@ -29,18 +29,23 @@ export interface Workspace {
   cleanup(): void;
 }
 
-export function createWorkspace(options: {
-  modifications?: unknown[];
-  tests?: unknown[];
-  gitignore?: boolean;
-} = {}): Workspace {
+export function createWorkspace(
+  options: {
+    modifications?: unknown[];
+    tests?: unknown[];
+    gitignore?: boolean;
+  } = {},
+): Workspace {
   const dir = mkdtempSync(join(tmpdir(), "w7s-ws-"));
   const pristine = join(dir, "pristine");
   copyPristineTiny(pristine);
 
   mkdirSync(join(dir, "mods", "runtime"), { recursive: true });
   mkdirSync(join(dir, "mods", "install", "dom", "base"), { recursive: true });
-  writeFileSync(join(dir, "mods", "runtime", "speculum-runtime.cpp"), "int speculum_runtime(){return 0;}\n");
+  writeFileSync(
+    join(dir, "mods", "runtime", "speculum-runtime.cpp"),
+    "int speculum_runtime(){return 0;}\n",
+  );
   writeFileSync(
     join(dir, "mods", "install", "dom", "base", "Document.cpp"),
     "// our Document.cpp\nint x = 2;\n",
@@ -51,7 +56,9 @@ export function createWorkspace(options: {
       name: "runtime",
       description: "our runtime",
       type: "files",
-      files: [{ localPath: "./mods/runtime/speculum-runtime.cpp", geckoPath: "speculum-runtime.cpp" }],
+      files: [
+        { localPath: "./mods/runtime/speculum-runtime.cpp", geckoPath: "speculum-runtime.cpp" },
+      ],
       replacesGeckoSource: false,
     },
     {
@@ -90,6 +97,7 @@ export async function runProgram(
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
   const output = ports.output as { stdout: string; stderr: string; reset(): void };
   output.reset();
+  const previousExit = process.exitCode;
   process.exitCode = undefined;
   const program = createProgram({ ports });
   try {
@@ -97,8 +105,10 @@ export async function runProgram(
   } catch {
     // handleFatal sets exitCode
   }
+  const exitCode = typeof process.exitCode === "number" ? process.exitCode : 0;
+  process.exitCode = previousExit;
   return {
-    exitCode: process.exitCode ?? 0,
+    exitCode,
     stdout: output.stdout,
     stderr: output.stderr,
   };

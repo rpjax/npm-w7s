@@ -78,7 +78,7 @@ export async function runStatus(
     nextCommand = "w7s gecko toolchain --pull";
   }
 
-  let upgrades: { geckoPath: string; diff: string }[] = [];
+  const upgrades: { geckoPath: string; diff: string }[] = [];
   if (opts.upgrades) {
     for (const file of files.filter((f) => f.replacesGeckoSource)) {
       const pristine = await run.ports.engine.readPristine(imageRef, file.geckoPath);

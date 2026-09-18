@@ -12,7 +12,10 @@ export interface WorkspacePaths {
   distDir: string;
   geckoSource: string;
   geckoBinary: string;
+  /** Deliverable directory: only firefox.tar.gz + build.json. */
   sidecarPackage: string;
+  /** Dual-stamp volume for sidecar-package (kept out of dist/). */
+  sidecarStamp: string;
   target: string;
 }
 
@@ -28,11 +31,28 @@ export function resolveWorkspace(manifestDir: string, target = TOOLCHAIN_TARGET)
     geckoSource: join(volumesDir, "gecko-source"),
     geckoBinary: join(volumesDir, "gecko-binary"),
     sidecarPackage: join(manifestDir, "dist", target),
+    sidecarStamp: join(volumesDir, "sidecar-package"),
     target,
   };
 }
 
 export function volumeRootFor(paths: WorkspacePaths, artifact: ArtifactName): string {
+  switch (artifact) {
+    case "gecko-source":
+      return paths.geckoSource;
+    case "gecko-binary":
+      return paths.geckoBinary;
+    case "sidecar-package":
+      return paths.sidecarStamp;
+    default: {
+      const _exhaustive: never = artifact;
+      return _exhaustive;
+    }
+  }
+}
+
+/** Host path of the artifact content (distinct from the currency stamp for sidecar-package). */
+export function artifactPathFor(paths: WorkspacePaths, artifact: ArtifactName): string {
   switch (artifact) {
     case "gecko-source":
       return paths.geckoSource;

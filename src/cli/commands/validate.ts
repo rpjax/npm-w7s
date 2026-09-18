@@ -50,9 +50,13 @@ export async function runValidate(run: RunContext): Promise<Record<string, unkno
     const hasDist = /(^|[\n/])dist\/?(\n|$)/m.test(gi) || gi.includes("dist/");
     const hasW7s = gi.includes(".w7s");
     if (!hasDist || !hasW7s) {
-      fail("Manifest", "validate fails if dist/ and .w7s/ are not ignored by the consumer's repository.", {
-        hint: "Add dist/ and .w7s/ to .gitignore",
-      });
+      fail(
+        "Manifest",
+        "validate fails if dist/ and .w7s/ are not ignored by the consumer's repository.",
+        {
+          hint: "Add dist/ and .w7s/ to .gitignore",
+        },
+      );
     }
   }
 

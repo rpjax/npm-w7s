@@ -33,7 +33,10 @@ export interface ApplyResult {
 function atomicWrite(dest: string, content: Buffer): void {
   const dir = dirname(dest);
   mkdirSync(dir, { recursive: true });
-  const temp = join(dir, `.w7s-tmp-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  const temp = join(
+    dir,
+    `.w7s-tmp-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  );
   writeFileSync(temp, content);
   renameSync(temp, dest);
 }

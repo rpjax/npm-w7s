@@ -23,7 +23,9 @@ export async function runMake(
   const nextSteps =
     result.artifact === "sidecar-package"
       ? ["dockup deploy — package the released image"]
-      : [`w7s gecko make ${result.artifact === "gecko-source" ? "gecko-binary" : "sidecar-package"}`];
+      : [
+          `w7s gecko make ${result.artifact === "gecko-source" ? "gecko-binary" : "sidecar-package"}`,
+        ];
 
   const payload = successPayload(
     run.command,

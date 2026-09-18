@@ -92,14 +92,7 @@ export class DockerEngine implements ContainerEngine {
 
   async existsPristine(imageRef: string, geckoPath: string): Promise<boolean> {
     const containerPath = `/gecko-pristine/${geckoPath.replace(/\\/g, "/")}`;
-    const result = await this.run([
-      "run",
-      "--rm",
-      imageRef,
-      "test",
-      "-e",
-      containerPath,
-    ]);
+    const result = await this.run(["run", "--rm", imageRef, "test", "-e", containerPath]);
     return result.exitCode === 0;
   }
 

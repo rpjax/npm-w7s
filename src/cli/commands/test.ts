@@ -21,7 +21,10 @@ export interface TestCommandOpts {
   strict?: boolean;
 }
 
-export async function runTest(opts: TestCommandOpts, run: RunContext): Promise<Record<string, unknown>> {
+export async function runTest(
+  opts: TestCommandOpts,
+  run: RunContext,
+): Promise<Record<string, unknown>> {
   if (opts.stopOnFailure && opts.continueOnFailure) {
     fail("Cli", "Pass either --stop-on-failure or --continue-on-failure, not both.");
   }
@@ -39,7 +42,7 @@ export async function runTest(opts: TestCommandOpts, run: RunContext): Promise<R
     {
       "gecko-source": ctx.paths.geckoSource,
       "gecko-binary": ctx.paths.geckoBinary,
-      "sidecar-package": ctx.paths.sidecarPackage,
+      "sidecar-package": ctx.paths.sidecarStamp,
     },
     fingerprint,
   );
@@ -107,7 +110,11 @@ export async function runTest(opts: TestCommandOpts, run: RunContext): Promise<R
     dryRun: run.options.dryRun,
   });
 
-  const payload = testReportJson(summary, run.command, Number(((Date.now() - run.startedAt) / 1000).toFixed(1)));
+  const payload = testReportJson(
+    summary,
+    run.command,
+    Number(((Date.now() - run.startedAt) / 1000).toFixed(1)),
+  );
 
   if (run.options.json) {
     run.ports.output.writeStdout(`${JSON.stringify(payload)}\n`);

@@ -1,8 +1,11 @@
 # Manifest reference — `w7s.json`
 
-One file at the root of the engine directory. Discovered by walking up from the current
-directory, the same way dockup discovers `dockup.json`. `<name>.w7s.json` is also accepted,
-so a repository with more than one engine directory can name them.
+One file at the root of the engine directory. It is found by walking up from the current
+directory until a `w7s.json` or `<name>.w7s.json` appears, so a command works from anywhere
+inside the engine directory. `--manifest` names one directly and skips the search.
+
+The walk stops at the first match. Two candidate files in the same directory is an error
+naming both, not a choice made silently.
 
 Field names are camelCase, matching `dockup.json`.
 

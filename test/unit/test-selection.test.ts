@@ -4,7 +4,9 @@ import { selectTests } from "../../src/tests/select.js";
 import type { TestDeclaration } from "../../src/manifest/types.js";
 import type { CurrencyReport } from "../../src/artifacts/currency.js";
 
-function testDecl(partial: Partial<TestDeclaration> & Pick<TestDeclaration, "name">): TestDeclaration {
+function testDecl(
+  partial: Partial<TestDeclaration> & Pick<TestDeclaration, "name">,
+): TestDeclaration {
   return {
     description: partial.description ?? partial.name,
     entryPoint: partial.entryPoint ?? "./t.sh",
@@ -26,9 +28,24 @@ const allCurrent: CurrencyReport[] = [
 
 describe("test selection", () => {
   const tests: TestDeclaration[] = [
-    testDecl({ name: "alpha", tags: ["smoke"], classification: "release-gate", dependsOn: ["gecko-source"] }),
-    testDecl({ name: "beta", tags: ["slow"], classification: "diagnostic", dependsOn: ["gecko-binary"] }),
-    testDecl({ name: "gamma", tags: ["smoke", "net"], classification: "diagnostic", dependsOn: [] }),
+    testDecl({
+      name: "alpha",
+      tags: ["smoke"],
+      classification: "release-gate",
+      dependsOn: ["gecko-source"],
+    }),
+    testDecl({
+      name: "beta",
+      tags: ["slow"],
+      classification: "diagnostic",
+      dependsOn: ["gecko-binary"],
+    }),
+    testDecl({
+      name: "gamma",
+      tags: ["smoke", "net"],
+      classification: "diagnostic",
+      dependsOn: [],
+    }),
   ];
 
   it("selects by name", () => {

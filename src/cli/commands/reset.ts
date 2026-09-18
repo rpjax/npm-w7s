@@ -3,7 +3,12 @@ import { loadValidatedManifest } from "../context.js";
 import { assertArtifactName } from "../../artifacts/graph.js";
 import type { ArtifactName } from "../../manifest/types.js";
 import { expandModifications } from "../../modifications/expand.js";
-import { resetArtifact, listDirtyFiles, prefetchPristine, pristineReader } from "../../pipeline/make.js";
+import {
+  resetArtifact,
+  listDirtyFiles,
+  prefetchPristine,
+  pristineReader,
+} from "../../pipeline/make.js";
 import { requiredToolchainImage } from "../../version.js";
 import { fail } from "../../errors/index.js";
 import { successPayload } from "../../ux/error-panel.js";

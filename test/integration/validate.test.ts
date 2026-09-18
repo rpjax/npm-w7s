@@ -12,7 +12,10 @@ describe("validate (integration)", () => {
     try {
       const result = await runProgram(["gecko", "validate", "--json"], ws.ports);
       assert.equal(result.exitCode, 0, result.stdout + result.stderr);
-      const payload = JSON.parse(result.stdout) as { ok: boolean; result: { modifications: number } };
+      const payload = JSON.parse(result.stdout) as {
+        ok: boolean;
+        result: { modifications: number };
+      };
       assert.equal(payload.ok, true);
       assert.ok(payload.result.modifications >= 1);
     } finally {

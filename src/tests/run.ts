@@ -208,7 +208,8 @@ export async function runTests(options: RunTestsOptions): Promise<RunTestsSummar
       r.classification === "release-gate" && (r.outcome === "passed" || r.outcome === "failed"),
   );
   const incomplete =
-    releaseGates.length > 0 && executedGates.length < releaseGates.filter((s) => s.status !== "excluded").length;
+    releaseGates.length > 0 &&
+    executedGates.length < releaseGates.filter((s) => s.status !== "excluded").length;
 
   const ok = failed === 0 && !incomplete;
 
@@ -223,7 +224,9 @@ export function assertTestsOk(summary: RunTestsSummary): void {
     const first = summary.results.find((r) => r.outcome === "failed");
     fail("Test", `Release-gate test failed${first ? `: ${first.name}` : "."}`, {
       detail: first?.logPath,
-      hint: first?.logPath ? `Inspect ${first.logPath}` : "w7s gecko test --classification release-gate",
+      hint: first?.logPath
+        ? `Inspect ${first.logPath}`
+        : "w7s gecko test --classification release-gate",
     });
   }
   if (summary.incomplete) {

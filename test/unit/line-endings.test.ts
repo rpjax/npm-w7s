@@ -26,10 +26,14 @@ describe("line endings", () => {
     const root = mkdtempSync(join(tmpdir(), "w7s-lf-"));
     try {
       mkdirSync(join(root, "mods", "media"), { recursive: true });
-      writeFileSync(join(root, "mods", "media", "crlf.txt"), Buffer.from("line1\r\nline2\r\n", "utf8"));
+      writeFileSync(
+        join(root, "mods", "media", "crlf.txt"),
+        Buffer.from("line1\r\nline2\r\n", "utf8"),
+      );
       const tree = join(root, "tree");
       mkdirSync(join(tree, "media"), { recursive: true });
-      writeFileSync(join(tree, "media", "crlf.txt"), Buffer.from("line1\r\nline2\r\n", "utf8"));
+      // Working tree starts as pristine LF so the outcome is write, not dirty.
+      writeFileSync(join(tree, "media", "crlf.txt"), Buffer.from("line1\nline2\n", "utf8"));
 
       const modifications: Modification[] = [
         {
@@ -47,11 +51,12 @@ describe("line endings", () => {
         pristineRoot: null,
         existsInPristine: () => true,
         skipReplacesCheck: true,
-        readPristine: () => Buffer.from("line1\r\nline2\r\n", "utf8"),
+        readPristine: () => Buffer.from("line1\nline2\n", "utf8"),
       });
 
       const written = readFileSync(resolveInTree(tree, "media/crlf.txt"));
       assert.equal(written.toString("utf8"), "line1\nline2\n");
+      assert.ok(!written.includes(0x0d));
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

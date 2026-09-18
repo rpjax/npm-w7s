@@ -14,10 +14,7 @@ export interface ManifestContext {
   paths: WorkspacePaths;
 }
 
-export function resolveManifestPath(
-  options: Pick<GlobalOptions, "manifest">,
-  cwd: string,
-): string {
+export function resolveManifestPath(options: Pick<GlobalOptions, "manifest">, cwd: string): string {
   try {
     if (options.manifest) {
       return resolve(cwd, options.manifest);

@@ -83,7 +83,9 @@ export function handleFatal(err: unknown, run: RunContext, json: boolean): ExitC
             cause: err.causeText,
           });
     if (json) {
-      run.ports.output.writeStdout(`${JSON.stringify(failurePayload(werr, run.command, run.startedAt))}\n`);
+      run.ports.output.writeStdout(
+        `${JSON.stringify(failurePayload(werr, run.command, run.startedAt))}\n`,
+      );
     } else {
       printErrorPanel({
         err: werr,
@@ -97,7 +99,8 @@ export function handleFatal(err: unknown, run: RunContext, json: boolean): ExitC
 
   const message = err instanceof Error ? err.message : String(err);
   const runtimeErr = new W7sError("Execution", "Unexpected error.", {
-    detail: err instanceof Error && err.stack ? err.stack.split("\n").slice(0, 6).join("\n") : undefined,
+    detail:
+      err instanceof Error && err.stack ? err.stack.split("\n").slice(0, 6).join("\n") : undefined,
     cause: message,
     hint: nextStepsForPhase("Execution")[0],
   });
@@ -212,7 +215,12 @@ export function createProgram(deps: AppDeps = {}): Command {
     gecko.command("fingerprint").description("fingerprint of the modified tree"),
   ).action(async () => {
     try {
-      printHeader(app.run, "gecko fingerprint");
+      // Provider contract: stdout is exactly the fingerprint (or one JSON document).
+      if (!app.run.options.json) {
+        // skip session header — dockup parses the bare fingerprint
+      } else {
+        printHeader(app.run, "gecko fingerprint");
+      }
       await runFingerprint(app.run);
     } catch (err) {
       process.exitCode = handleFatal(err, app.run, Boolean(app.global.json));
@@ -241,16 +249,16 @@ export function createProgram(deps: AppDeps = {}): Command {
     }
   });
 
-  addGlobalOptions(
-    gecko.command("stop").description("stop what start started"),
-  ).action(async () => {
-    try {
-      printHeader(app.run, "gecko stop");
-      await runStop(app.run);
-    } catch (err) {
-      process.exitCode = handleFatal(err, app.run, Boolean(app.global.json));
-    }
-  });
+  addGlobalOptions(gecko.command("stop").description("stop what start started")).action(
+    async () => {
+      try {
+        printHeader(app.run, "gecko stop");
+        await runStop(app.run);
+      } catch (err) {
+        process.exitCode = handleFatal(err, app.run, Boolean(app.global.json));
+      }
+    },
+  );
 
   addGlobalOptions(
     gecko

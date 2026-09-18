@@ -43,12 +43,7 @@ export async function runShell(
   }
 
   const result = await run.ports.engine.run(argv);
-  const payload = successPayload(
-    run.command,
-    run.startedAt,
-    { exitCode: result.exitCode },
-    [],
-  );
+  const payload = successPayload(run.command, run.startedAt, { exitCode: result.exitCode }, []);
 
   if (run.options.json) {
     run.ports.output.writeStdout(`${JSON.stringify(payload)}\n`);

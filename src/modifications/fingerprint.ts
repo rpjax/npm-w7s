@@ -15,10 +15,7 @@ export function computeFingerprint(w7sVersion: string, files: ExpandedFile[]): s
     })
     .sort((a, b) => (a.geckoPath < b.geckoPath ? -1 : a.geckoPath > b.geckoPath ? 1 : 0));
 
-  const payload = [
-    w7sVersion,
-    ...pairs.map((p) => `${p.geckoPath}\n${p.hash}`),
-  ].join("\n");
+  const payload = [w7sVersion, ...pairs.map((p) => `${p.geckoPath}\n${p.hash}`)].join("\n");
 
   return createHash("sha256").update(payload, "utf8").digest("hex").slice(0, 12);
 }

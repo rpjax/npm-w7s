@@ -35,7 +35,12 @@ describe("engine preconditions", () => {
       ws.ports.engine.images.clear();
       const result = await runProgram(["gecko", "make", "gecko-source", "--json"], ws.ports);
       assert.equal(result.exitCode, EXIT.Toolchain);
-      const payload = JSON.parse(result.stdout) as { phase: string; exitCode: number };
+      const payload = JSON.parse(result.stdout) as {
+        ok: boolean;
+        phase: string;
+        exitCode: number;
+      };
+      assert.equal(payload.ok, false);
       assert.equal(payload.phase, "Toolchain");
       assert.equal(payload.exitCode, 4);
     } finally {

@@ -15,11 +15,7 @@ import {
 import { stepsForMake, assertArtifactName, dependenciesOf } from "../artifacts/graph.js";
 import type { Ports } from "../ports/index.js";
 import { requiredToolchainImage, getVersion } from "../version.js";
-import {
-  ensureWorkspaceDirs,
-  volumeRootFor,
-  type WorkspacePaths,
-} from "../workspace/paths.js";
+import { ensureWorkspaceDirs, volumeRootFor, type WorkspacePaths } from "../workspace/paths.js";
 import { writeSidecarPackage } from "../package/sidecar.js";
 import { selectTests } from "../tests/select.js";
 import { runTests, assertTestsOk } from "../tests/run.js";
@@ -178,7 +174,7 @@ async function produceSidecarPackage(options: MakeOptions, fingerprint: string):
     {
       "gecko-source": paths.geckoSource,
       "gecko-binary": paths.geckoBinary,
-      "sidecar-package": paths.sidecarPackage,
+      "sidecar-package": paths.sidecarStamp,
     },
     fingerprint,
   );
@@ -217,7 +213,7 @@ async function produceSidecarPackage(options: MakeOptions, fingerprint: string):
     stampArtifact(
       "sidecar-package",
       manifestDir,
-      paths.sidecarPackage,
+      paths.sidecarStamp,
       fingerprint,
       ports.clock.now().toISOString(),
     );

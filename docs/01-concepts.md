@@ -32,6 +32,11 @@ the runners a release-gate test is allowed to name (see [05-tests.md](05-tests.m
 
 Two consequences, and they are the reason the design is shaped this way:
 
+The pin lives in this package, in `toolchain/Dockerfile`, as the upstream remote
+(`https://github.com/mozilla-firefox/firefox.git`), the tag and the commit. It is build
+arguments of that image and appears nowhere else — not in a consumer's manifest and not in a
+configuration file.
+
 **The Firefox version is a property of the w7s release, not of your repository.** There is
 no pin to declare, no commit to verify, no clone that can be stale, and no possibility of
 two machines holding different trees. Moving to another ESR means installing another version

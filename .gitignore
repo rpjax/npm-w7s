@@ -4,3 +4,5 @@ out/
 w7s.json
 !examples/**/w7s.json
 rodrigopjax-w7s-*.tgz
+toolchain/*.tar.gz
+toolchain/*.sha256

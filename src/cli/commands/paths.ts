@@ -3,7 +3,7 @@ import type { RunContext } from "../run-context.js";
 import { loadValidatedManifest } from "../context.js";
 import { assertArtifactName } from "../../artifacts/graph.js";
 import type { ArtifactName } from "../../manifest/types.js";
-import { volumeRootFor, containerPathFor, toPosixPath } from "../../workspace/paths.js";
+import { artifactPathFor, containerPathFor, toPosixPath } from "../../workspace/paths.js";
 import { expandModifications } from "../../modifications/expand.js";
 import { computeFingerprint } from "../../modifications/fingerprint.js";
 import { getVersion, TOOLCHAIN_TARGET } from "../../version.js";
@@ -33,7 +33,7 @@ export async function runPaths(
   if (opts.artifact) {
     assertArtifactName(opts.artifact);
     const name = opts.artifact as ArtifactName;
-    const host = volumeRootFor(ctx.paths, name);
+    const host = artifactPathFor(ctx.paths, name);
     const container = containerPathFor(name);
     let sizeBytes = 0;
     let sha256 = "";
@@ -85,14 +85,20 @@ export async function runPaths(
   const all = (["gecko-source", "gecko-binary", "sidecar-package"] as ArtifactName[]).map(
     (name) => ({
       artifact: name,
-      host: volumeRootFor(ctx.paths, name),
+      host: artifactPathFor(ctx.paths, name),
       container: containerPathFor(name),
     }),
   );
 
-  const payload = successPayload(run.command, run.startedAt, { paths: all, target: TOOLCHAIN_TARGET }, [], {
-    fingerprint,
-  });
+  const payload = successPayload(
+    run.command,
+    run.startedAt,
+    { paths: all, target: TOOLCHAIN_TARGET },
+    [],
+    {
+      fingerprint,
+    },
+  );
 
   if (run.options.json) {
     run.ports.output.writeStdout(`${JSON.stringify(payload)}\n`);

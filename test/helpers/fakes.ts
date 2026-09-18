@@ -135,7 +135,10 @@ export class FakeOutput implements Output {
   }
 }
 
-export function createFakePorts(cwd: string, pristineRoot: string): Ports & {
+export function createFakePorts(
+  cwd: string,
+  pristineRoot: string,
+): Ports & {
   engine: FakeEngine;
   clock: FakeClock;
   host: FakeHost;

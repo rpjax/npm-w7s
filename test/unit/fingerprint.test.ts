@@ -56,7 +56,10 @@ describe("fingerprint", () => {
         },
       ];
       const filesReversed = expandModifications(reversed, b.root);
-      assert.equal(computeFingerprint("0.1.0", a.files), computeFingerprint("0.1.0", filesReversed));
+      assert.equal(
+        computeFingerprint("0.1.0", a.files),
+        computeFingerprint("0.1.0", filesReversed),
+      );
       assert.equal(computeFingerprint("0.1.0", a.files).length, 12);
     } finally {
       a.cleanup();

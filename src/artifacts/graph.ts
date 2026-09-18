@@ -10,11 +10,7 @@ export const ARTIFACT_CHAIN: Record<ArtifactName, ArtifactName[]> = {
 };
 
 /** Ordered production sequence. */
-export const PRODUCTION_ORDER: ArtifactName[] = [
-  "gecko-source",
-  "gecko-binary",
-  "sidecar-package",
-];
+export const PRODUCTION_ORDER: ArtifactName[] = ["gecko-source", "gecko-binary", "sidecar-package"];
 
 export function assertArtifactName(name: string): asserts name is ArtifactName {
   if (!(ARTIFACT_NAMES as readonly string[]).includes(name)) {

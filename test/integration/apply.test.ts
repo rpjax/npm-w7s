@@ -1,5 +1,13 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, statSync, rmSync, cpSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  writeFileSync,
+  readFileSync,
+  statSync,
+  rmSync,
+  cpSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -27,8 +35,14 @@ describe("apply (integration)", () => {
 
     mkdirSync(join(root, "mods", "dom", "base"), { recursive: true });
     mkdirSync(join(root, "mods", "runtime"), { recursive: true });
-    writeFileSync(join(root, "mods", "dom", "base", "Document.cpp"), "// our Document.cpp\nint x = 2;\n");
-    writeFileSync(join(root, "mods", "runtime", "speculum-runtime.cpp"), "int speculum_runtime(){return 0;}\n");
+    writeFileSync(
+      join(root, "mods", "dom", "base", "Document.cpp"),
+      "// our Document.cpp\nint x = 2;\n",
+    );
+    writeFileSync(
+      join(root, "mods", "runtime", "speculum-runtime.cpp"),
+      "int speculum_runtime(){return 0;}\n",
+    );
 
     const modifications: Modification[] = [
       {

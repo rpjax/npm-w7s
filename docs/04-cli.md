@@ -87,8 +87,8 @@ separate command for the first run is a state the user has to remember.
 There is no `artifacts` command: the production chain is part of `status`, where the reader is
 already looking.
 
-Eleven commands. Every one of them is a verb that names its object, and none of them does
-what another one does.
+Twelve commands. Every one of them names its object, and none of them does what another
+one does.
 
 ## Error phases
 
@@ -153,7 +153,7 @@ Success:
 
 ```jsonc
 { "ok": true,
-  "command": "gecko apply",
+  "command": "gecko make gecko-source",
   "fingerprint": "a3f19c7b21d4",
   "elapsedSeconds": 1.4,
   "result": { "filesWritten": 2, "filesUnchanged": 43 },
@@ -164,7 +164,7 @@ Failure:
 
 ```jsonc
 { "ok": false,
-  "command": "gecko apply",
+  "command": "gecko make gecko-source",
   "phase": "WorkingTree",
   "message": "3 files in the working tree differ from the manifest.",
   "hint": "w7s gecko capture --all --into <modification>",
