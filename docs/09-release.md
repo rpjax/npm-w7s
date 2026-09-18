@@ -50,12 +50,17 @@ While the version is `0.x`, minor may break, and each entry says so.
 ```bash
 npm run lint && npm test
 npm run test:engine                # the tier CI cannot run — needs a container engine
+
+# 1. the toolchain image, for the version about to be released
+cd toolchain && docker build -t ghcr.io/rpjax/w7s-toolchain:0.1.0 . && docker push ghcr.io/rpjax/w7s-toolchain:0.1.0
+
+# 2. the package
 # move [Unreleased] to [x.y.z] - YYYY-MM-DD in CHANGELOG.md
 npm version <major|minor|patch>
 git push --follow-tags
 ```
 
-The tag is what triggers publication.
+The tag triggers publication. The image must already be in the registry when it does.
 
 ## What CI does with the tag
 
@@ -68,17 +73,40 @@ publish:
   needs: [lint, test-unit, test-e2e, test-windows]
 ```
 
-A tag on red never ships. The job builds and pushes the toolchain image first, then publishes
-the package — in that order, so a published CLI never points at a tag that does not exist.
+A tag on red never ships.
+
+The two artifacts are produced in **different places**, and on purpose:
+
+| artifact | built where | why |
+|---|---|---|
+| the toolchain image | a machine with the engine and the time — by hand or on a self-hosted runner | it is roughly 7 GB and over an hour; a hosted runner would re-clone Firefox on every release |
+| the npm package | the hosted `publish` job | seconds |
+
+So the order of a release is: **build and push the image first, then tag.** The publish job
+does not build the image — it *verifies the image exists* for the version being published,
+and fails if it does not:
 
 ```yaml
+- name: verify the toolchain image exists
+  run: |
+    VERSION=$(node -p "require('./package.json').version")
+    docker manifest inspect ghcr.io/rpjax/w7s-toolchain:$VERSION > /dev/null
 - run: npm ci
 - run: npm run build
-- run: docker build -t ghcr.io/rpjax/w7s-toolchain:${{ steps.version.outputs.value }} ./toolchain
-- run: docker push ghcr.io/rpjax/w7s-toolchain:${{ steps.version.outputs.value }}
 - run: npm publish --provenance --access public
   env:
     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+```
+
+That check is what makes the pairing real rather than a promise: a CLI that requires a
+toolchain tag can never reach npm before that tag exists.
+
+Building the image:
+
+```bash
+cd toolchain
+docker build -t ghcr.io/rpjax/w7s-toolchain:<version> .
+docker push ghcr.io/rpjax/w7s-toolchain:<version>
 ```
 
 Three details:
@@ -90,9 +118,9 @@ Three details:
 - **`prepublishOnly`** runs build, test and lint again, so a manual publish from a laptop
   cannot skip the gates.
 
-Note that this repository builds its own toolchain image, which is not a contradiction of the
-boundary in [06-provider.md](06-provider.md): that boundary is about images in a *consumer's*
-repository. A package building the image it ships is a package building its own artifact.
+This repository building its own toolchain image is not a contradiction of the boundary in
+[06-provider.md](06-provider.md): that boundary is about images in a *consumer's* repository.
+A package building the image it ships is building its own artifact.
 
 ## Secrets
 
