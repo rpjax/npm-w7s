@@ -1,14 +1,17 @@
 #0 building with "desktop-linux" instance using docker driver
 
 #1 [internal] load build definition from Dockerfile
-#1 transferring dockerfile: 3.41kB 0.0s done
-#1 DONE 0.0s
+#1 transferring dockerfile: 3.89kB 0.0s done
+#1 DONE 0.1s
 
-#2 [auth] docker/dockerfile:pull token for registry-1.docker.io
-#2 DONE 0.0s
+#2 resolve image config for docker-image://docker.io/docker/dockerfile:1.7
+#2 ...
 
-#3 resolve image config for docker-image://docker.io/docker/dockerfile:1.7
-#3 DONE 1.2s
+#3 [auth] docker/dockerfile:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 resolve image config for docker-image://docker.io/docker/dockerfile:1.7
+#2 DONE 1.1s
 
 #4 docker-image://docker.io/docker/dockerfile:1.7@sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e
 #4 resolve docker.io/docker/dockerfile:1.7@sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e 0.0s done
@@ -21,18 +24,270 @@
 #6 DONE 0.0s
 
 #5 [internal] load metadata for docker.io/library/ubuntu:24.04
-#5 DONE 0.8s
+#5 DONE 1.2s
 
 #7 [internal] load .dockerignore
-#7 transferring context: 2B done
-#7 DONE 0.0s
+#7 transferring context: 0.0s
+#7 transferring context: 2B 0.1s done
+#7 DONE 0.2s
 
-#8 [ 1/11] FROM docker.io/library/ubuntu:24.04@sha256:b3cc40b72b93588182b5410f723c7aaf142363311c2aa993d8a453ddcbb3ae15
+#8 [ 1/12] FROM docker.io/library/ubuntu:24.04@sha256:b3cc40b72b93588182b5410f723c7aaf142363311c2aa993d8a453ddcbb3ae15
 #8 resolve docker.io/library/ubuntu:24.04@sha256:b3cc40b72b93588182b5410f723c7aaf142363311c2aa993d8a453ddcbb3ae15 0.0s done
 #8 DONE 0.0s
 
-#9 [ 2/11] RUN apt-get update && apt-get install -y --no-install-recommends       ca-certificates       curl       git       python3       python3-pip       python3-venv       build-essential       clang       g++       cmake       jq       pkg-config       libssl-dev       unzip
+#9 [ 2/12] RUN apt-get update && apt-get install -y --no-install-recommends       ca-certificates       curl       git       python3       python3-pip       python3-venv       build-essential       clang       g++       cmake       jq       pkg-config       libssl-dev       unzip
 #9 CACHED
 
-#10 [ 3/11] RUN git clone --depth 1 --branch "FIREFOX_153_2_0esr_RELEASE" "https://github.com/mozilla-firefox/firefox.git" /gecko-pristine  && test "$(git -C /gecko-pristine rev-parse HEAD)" = "feec67e62a5148b41fd017ccbbc463e8a6f9e83d"  && test -f /gecko-pristine/mach
-#10 0.325 Cloning into '/gecko-pristine'...
+#10 [ 3/12] RUN git clone --depth 1 --branch "FIREFOX_153_2_0esr_RELEASE" "https://github.com/mozilla-firefox/firefox.git" /gecko-pristine  && test "$(git -C /gecko-pristine rev-parse HEAD)" = "feec67e62a5148b41fd017ccbbc463e8a6f9e83d"  && test -f /gecko-pristine/mach
+#10 0.721 Cloning into '/gecko-pristine'...
+#10 159.3 Note: switching to 'feec67e62a5148b41fd017ccbbc463e8a6f9e83d'.
+#10 159.3 
+#10 159.3 You are in 'detached HEAD' state. You can look around, make experimental
+#10 159.3 changes and commit them, and you can discard any commits you make in this
+#10 159.3 state without impacting any branches by switching back to a branch.
+#10 159.3 
+#10 159.3 If you want to create a new branch to retain commits you create, you may
+#10 159.3 do so (now or later) by using -c with the switch command. Example:
+#10 159.3 
+#10 159.3   git switch -c <new-branch-name>
+#10 159.3 
+#10 159.3 Or undo this operation with:
+#10 159.3 
+#10 159.3   git switch -
+#10 159.3 
+#10 159.3 Turn off this advice by setting config variable advice.detachedHead to false
+#10 159.3 
+#10 161.0 Updating files:   0% (2634/468623)
+Updating files:   0% (4307/468623)
+Updating files:   1% (4687/468623)
+Updating files:   1% (7010/468623)
+Updating files:   2% (9373/468623)
+Updating files:   2% (9618/468623)
+Updating files:   2% (12740/468623)
+Updating files:   3% (14059/468623)
+Updating files:   3% (14379/468623)
+Updating files:   3% (16760/468623)
+Updating files:   4% (18745/468623)
+Updating files:   4% (20113/468623)
+Updating files:   4% (22343/468623)
+Updating files:   5% (23432/468623)
+Updating files:   5% (26760/468623)
+Updating files:   6% (28118/468623)
+Updating files:   6% (31736/468623)
+Updating files:   7% (32804/468623)
+Updating files:   7% (36548/468623)
+Updating files:   8% (37490/468623)
+Updating files:   8% (40334/468623)
+Updating files:   9% (42177/468623)
+Updating files:   9% (42979/468623)
+Updating files:   9% (43954/468623)
+Updating files:  10% (46863/468623)
+Updating files:  10% (48529/468623)
+Updating files:  11% (51549/468623)
+Updating files:  11% (52928/468623)
+Updating files:  11% (53787/468623)
+Updating files:  12% (56235/468623)
+Updating files:  12% (58107/468623)
+Updating files:  12% (59781/468623)
+Updating files:  13% (60921/468623)
+Updating files:  13% (62715/468623)
+Updating files:  13% (64802/468623)
+Updating files:  14% (65608/468623)
+Updating files:  14% (67379/468623)
+Updating files:  14% (68231/468623)
+Updating files:  15% (70294/468623)
+Updating files:  15% (70447/468623)
+Updating files:  15% (71851/468623)
+Updating files:  15% (73663/468623)
+Updating files:  15% (74978/468623)
+Updating files:  16% (74980/468623)
+Updating files:  16% (76714/468623)
+Updating files:  16% (78560/468623)
+Updating files:  17% (79666/468623)
+Updating files:  17% (82024/468623)
+Updating files:  18% (84353/468623)
+Updating files:  18% (86653/468623)
+Updating files:  18% (87562/468623)
+Updating files:  19% (89039/468623)
+Updating files:  19% (89716/468623)
+Updating files:  20% (93725/468623)
+Updating files:  20% (94139/468623)
+Updating files:  21% (98411/468623)
+Updating files:  21% (98538/468623)
+Updating files:  22% (103098/468623)
+Updating files:  22% (103704/468623)
+Updating files:  22% (107684/468623)
+Updating files:  23% (107784/468623)
+Updating files:  24% (112470/468623)
+Updating files:  24% (112629/468623)
+Updating files:  25% (117156/468623)
+Updating files:  25% (118382/468623)
+Updating files:  26% (121842/468623)
+Updating files:  26% (122540/468623)
+Updating files:  27% (126529/468623)
+Updating files:  27% (129766/468623)
+Updating files:  28% (131215/468623)
+Updating files:  29% (135901/468623)
+Updating files:  29% (138766/468623)
+Updating files:  30% (140587/468623)
+Updating files:  31% (145274/468623)
+Updating files:  31% (145579/468623)
+Updating files:  31% (148253/468623)
+Updating files:  32% (149960/468623)
+Updating files:  32% (151697/468623)
+Updating files:  33% (154646/468623)
+Updating files:  33% (157315/468623)
+Updating files:  34% (159332/468623)
+Updating files:  34% (161911/468623)
+Updating files:  35% (164019/468623)
+Updating files:  35% (166152/468623)
+Updating files:  36% (168705/468623)
+Updating files:  36% (171941/468623)
+Updating files:  37% (173391/468623)
+Updating files:  37% (174846/468623)
+Updating files:  37% (176745/468623)
+Updating files:  38% (178077/468623)
+Updating files:  38% (179446/468623)
+Updating files:  38% (182091/468623)
+Updating files:  39% (182763/468623)
+Updating files:  39% (185471/468623)
+Updating files:  40% (187450/468623)
+Updating files:  40% (188046/468623)
+Updating files:  40% (189073/468623)
+Updating files:  40% (191001/468623)
+Updating files:  41% (192136/468623)
+Updating files:  41% (193954/468623)
+Updating files:  42% (196822/468623)
+Updating files:  42% (197168/468623)
+Updating files:  42% (199665/468623)
+Updating files:  43% (201508/468623)
+Updating files:  43% (203506/468623)
+Updating files:  43% (204508/468623)
+Updating files:  43% (205704/468623)
+Updating files:  43% (206178/468623)
+Updating files:  43% (206187/468623)
+Updating files:  44% (206195/468623)
+Updating files:  44% (206230/468623)
+Updating files:  44% (206347/468623)
+Updating files:  44% (207670/468623)
+Updating files:  44% (208865/468623)
+Updating files:  44% (209353/468623)
+Updating files:  45% (210881/468623)
+Updating files:  45% (211126/468623)
+Updating files:  45% (211637/468623)
+Updating files:  45% (211912/468623)
+Updating files:  45% (213559/468623)
+Updating files:  46% (215567/468623)
+Updating files:  47% (220253/468623)
+Updating files:  47% (222948/468623)
+Updating files:  48% (224940/468623)
+Updating files:  49% (229626/468623)
+Updating files:  49% (230124/468623)
+Updating files:  50% (234312/468623)
+Updating files:  50% (236430/468623)
+Updating files:  51% (238998/468623)
+Updating files:  51% (241334/468623)
+Updating files:  52% (243684/468623)
+Updating files:  52% (243698/468623)
+Updating files:  52% (246438/468623)
+Updating files:  53% (248371/468623)
+Updating files:  54% (253057/468623)
+Updating files:  54% (254154/468623)
+Updating files:  55% (257743/468623)
+Updating files:  56% (262429/468623)
+Updating files:  56% (264705/468623)
+Updating files:  57% (267116/468623)
+Updating files:  58% (271802/468623)
+Updating files:  58% (274180/468623)
+Updating files:  59% (276488/468623)
+Updating files:  59% (280520/468623)
+Updating files:  60% (281174/468623)
+Updating files:  61% (285861/468623)
+Updating files:  61% (286857/468623)
+Updating files:  62% (290547/468623)
+Updating files:  62% (295104/468623)
+Updating files:  63% (295233/468623)
+Updating files:  64% (299919/468623)
+Updating files:  64% (303255/468623)
+Updating files:  65% (304605/468623)
+Updating files:  65% (308996/468623)
+Updating files:  66% (309292/468623)
+Updating files:  67% (313978/468623)
+Updating files:  67% (314978/468623)
+Updating files:  68% (318664/468623)
+Updating files:  69% (323350/468623)
+Updating files:  69% (324965/468623)
+Updating files:  70% (328037/468623)
+Updating files:  70% (332418/468623)
+Updating files:  71% (332723/468623)
+Updating files:  72% (337409/468623)
+Updating files:  72% (339042/468623)
+Updating files:  73% (342095/468623)
+Updating files:  73% (345204/468623)
+Updating files:  74% (346782/468623)
+Updating files:  74% (351180/468623)
+Updating files:  75% (351468/468623)
+Updating files:  76% (356154/468623)
+Updating files:  76% (357985/468623)
+Updating files:  77% (360840/468623)
+Updating files:  78% (365526/468623)
+Updating files:  78% (365664/468623)
+Updating files:  79% (370213/468623)
+Updating files:  79% (374229/468623)
+Updating files:  80% (374899/468623)
+Updating files:  81% (379585/468623)
+Updating files:  81% (382601/468623)
+Updating files:  82% (384271/468623)
+Updating files:  83% (388958/468623)
+Updating files:  83% (390392/468623)
+Updating files:  84% (393644/468623)
+Updating files:  84% (395365/468623)
+Updating files:  84% (396097/468623)
+Updating files:  85% (398330/468623)
+Updating files:  85% (399063/468623)
+Updating files:  85% (400457/468623)
+Updating files:  85% (402312/468623)
+Updating files:  86% (403016/468623)
+Updating files:  86% (404985/468623)
+Updating files:  86% (406700/468623)
+Updating files:  87% (407703/468623)
+Updating files:  87% (408633/468623)
+Updating files:  87% (409880/468623)
+Updating files:  88% (412389/468623)
+Updating files:  88% (413651/468623)
+Updating files:  89% (417075/468623)
+Updating files:  89% (418738/468623)
+Updating files:  90% (421761/468623)
+Updating files:  90% (422182/468623)
+Updating files:  90% (426006/468623)
+Updating files:  91% (426447/468623)
+Updating files:  91% (429910/468623)
+Updating files:  92% (431134/468623)
+Updating files:  92% (433576/468623)
+Updating files:  92% (435767/468623)
+Updating files:  93% (435820/468623)
+Updating files:  93% (437337/468623)
+Updating files:  93% (438720/468623)
+Updating files:  94% (440506/468623)
+Updating files:  94% (442217/468623)
+Updating files:  95% (445192/468623)
+Updating files:  95% (445675/468623)
+Updating files:  95% (447329/468623)
+Updating files:  95% (448498/468623)
+Updating files:  96% (449879/468623)
+Updating files:  96% (451413/468623)
+Updating files:  96% (453202/468623)
+Updating files:  97% (454565/468623)
+Updating files:  97% (456854/468623)
+Updating files:  98% (459251/468623)
+Updating files:  98% (460135/468623)
+Updating files:  98% (463831/468623)
+Updating files:  99% (463937/468623)
+Updating files:  99% (468309/468623)
+Updating files: 100% (468623/468623)
+Updating files: 100% (468623/468623), done.
+#10 DONE 292.9s
+#11 [ 4/12] WORKDIR /gecko-pristine
+#11 DONE 2.4s
+
+#12 [ 5/12] RUN ./mach --no-interactive bootstrap --application-choice browser  && rm -rf /var/lib/apt/lists/*

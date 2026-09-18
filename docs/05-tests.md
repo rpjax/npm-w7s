@@ -88,6 +88,16 @@ step names dockup:
 That is the same blocked semantics `dependsOn` uses, applied to the one input that belongs to
 another tool.
 
+**A note on where this value sits relative to the scope clause.** Verifying a released image
+stretches the boundary stated in [01-concepts.md](01-concepts.md): it is the one place where
+this tool touches something it did not produce. It is kept because the check itself is worth
+having and nothing else currently offers it.
+
+The practice, however, is the opposite of relying on it: tests against the deployed output are
+written against the deployed stack, with dockup or another tool, by the repository that owns
+the product. If that practice holds — and it should — this value ends up unused, and removing
+it at 1.0 costs nothing. It is here as an option, not as an invitation.
+
 ### `dependsOn`
 
 Artifact names from [01-concepts.md](01-concepts.md): `gecko-source`, `gecko-binary`,
