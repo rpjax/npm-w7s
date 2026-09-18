@@ -69,10 +69,9 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
  && rustup default 1.90.0 \
  && rustc --version | grep -q '1.90.0'
 
-# --- 4. sccache ---
-RUN cargo install sccache --locked \
+# --- 4. sccache (0.18+ needs rustc 1.91; stay on 0.17 with the 1.90.0 pin) ---
+RUN cargo install sccache --version 0.17.0 --locked \
  && sccache --version
-
 # --- 5. Release-gate runners only: bash, python3, node 22, dotnet SDK 9, clang, g++, cmake, jq ---
 # bash, python3, clang, g++, cmake, jq already present from base.
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
