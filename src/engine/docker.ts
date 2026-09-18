@@ -106,7 +106,7 @@ export class DockerEngine implements ContainerEngine {
       imageRef,
       "bash",
       "-lc",
-      "cp -a /gecko-pristine/. /out/",
+      "cp -a --no-preserve=ownership /gecko-pristine/. /out/",
     ]);
     if (result.exitCode !== 0) {
       fail("Toolchain", "Failed to copy pristine tree into gecko-source.", {

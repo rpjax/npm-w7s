@@ -86,7 +86,19 @@ RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
  && dotnet --list-sdks
 
 # --- 6. Lock the pristine tree read-only (.git kept — mach may consult VCS) ---
+# Root ignores mode bits (CAP_DAC_OVERRIDE); the default user must be non-root
+# so chmod a-w actually stops writes (GATE 2: touch /gecko-pristine/teste).
 RUN chmod -R a-w /gecko-pristine
 
+RUN useradd -m -u 1000 -s /bin/bash w7s \
+ && if [ -d /root/.mozbuild ]; then mv /root/.mozbuild /home/w7s/.mozbuild; \
+    else mkdir -p /home/w7s/.mozbuild; fi \
+ && chown -R w7s:w7s /home/w7s \
+ && mkdir -p /workspace && chown w7s:w7s /workspace
+
+ENV HOME=/home/w7s \
+    MOZBUILD_STATE_PATH=/home/w7s/.mozbuild
+
+USER w7s
 WORKDIR /workspace
 CMD ["bash"]
