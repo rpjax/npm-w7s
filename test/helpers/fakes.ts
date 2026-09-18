@@ -4,6 +4,7 @@ import type { Clock } from "../../src/ports/clock.js";
 import type { Host } from "../../src/ports/host.js";
 import type { Output } from "../../src/ports/output.js";
 import type { Ports } from "../../src/ports/index.js";
+import { TOOLCHAIN_IMAGE_DIGEST } from "../../src/version.js";
 import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -21,7 +22,7 @@ export class FakeEngine implements ContainerEngine {
   });
 
   constructor(public pristineRoot: string) {
-    this.images.set("ghcr.io/rpjax/w7s-toolchain:0.1.0", {
+    this.images.set(TOOLCHAIN_IMAGE_DIGEST, {
       digest: "sha256:faketoolchain",
       id: "sha256:fakeid",
     });
