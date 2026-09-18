@@ -1,0 +1,38 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 3.41kB 0.0s done
+#1 DONE 0.0s
+
+#2 [auth] docker/dockerfile:pull token for registry-1.docker.io
+#2 DONE 0.0s
+
+#3 resolve image config for docker-image://docker.io/docker/dockerfile:1.7
+#3 DONE 1.2s
+
+#4 docker-image://docker.io/docker/dockerfile:1.7@sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e
+#4 resolve docker.io/docker/dockerfile:1.7@sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e 0.0s done
+#4 CACHED
+
+#5 [internal] load metadata for docker.io/library/ubuntu:24.04
+#5 ...
+
+#6 [auth] library/ubuntu:pull token for registry-1.docker.io
+#6 DONE 0.0s
+
+#5 [internal] load metadata for docker.io/library/ubuntu:24.04
+#5 DONE 0.8s
+
+#7 [internal] load .dockerignore
+#7 transferring context: 2B done
+#7 DONE 0.0s
+
+#8 [ 1/11] FROM docker.io/library/ubuntu:24.04@sha256:b3cc40b72b93588182b5410f723c7aaf142363311c2aa993d8a453ddcbb3ae15
+#8 resolve docker.io/library/ubuntu:24.04@sha256:b3cc40b72b93588182b5410f723c7aaf142363311c2aa993d8a453ddcbb3ae15 0.0s done
+#8 DONE 0.0s
+
+#9 [ 2/11] RUN apt-get update && apt-get install -y --no-install-recommends       ca-certificates       curl       git       python3       python3-pip       python3-venv       build-essential       clang       g++       cmake       jq       pkg-config       libssl-dev       unzip
+#9 CACHED
+
+#10 [ 3/11] RUN git clone --depth 1 --branch "FIREFOX_153_2_0esr_RELEASE" "https://github.com/mozilla-firefox/firefox.git" /gecko-pristine  && test "$(git -C /gecko-pristine rev-parse HEAD)" = "feec67e62a5148b41fd017ccbbc463e8a6f9e83d"  && test -f /gecko-pristine/mach
+#10 0.325 Cloning into '/gecko-pristine'...

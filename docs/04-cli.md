@@ -59,6 +59,13 @@ w7s gecko make gecko-binary --only    # fails if gecko-source is not current
 
 ### Running
 
+`start` launches **the browser**, not the sidecar. It is the single exception to the scope
+clause in [01-concepts.md](01-concepts.md), and it is deliberately minimal: it starts the
+compiled Firefox with a profile and stops it. It reads no product configuration, knows no
+ports, no protocol and no session model. A change that would give it any of those belongs in
+the product, not here.
+
+
 | command                        | what it does                                               |
 | ------------------------------ | ---------------------------------------------------------- |
 | `w7s gecko start`              | starts the sidecar from `gecko-binary` for local iteration |

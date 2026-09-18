@@ -31,6 +31,8 @@ remembering anything.
 - git, for applying modifications — the pristine tree is a directory
 - any flag whose purpose is to tolerate a failure
 - any default that is not written in the manifest
+- any knowledge of how the product works — sessions, orchestrator, supervisor, wire protocol,
+  product configuration. `start` launches a browser and stops there, on purpose
 
 Each of these was considered and rejected. A tool that grows a second-rate version of the
 build system, the compiler cache, the container engine or the deployer becomes the thing it

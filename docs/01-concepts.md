@@ -1,5 +1,29 @@
 # Concepts and vocabulary
 
+## Scope
+
+**w7s builds Gecko. That is its entire purpose.**
+
+It takes the modifications a repository declares, applies them to a pinned Firefox tree,
+compiles, and produces a package. Every capability in this document exists to serve that one
+sentence.
+
+It is **not** the sidecar's build system, not its runtime, not its configuration, not its
+test harness, and not its deployment tool. It knows nothing about sessions, the orchestrator,
+the supervisor, the wire protocol, or how the product behaves — and it must never learn.
+
+The test that decides whether a proposed change belongs here:
+
+> If it requires w7s to know something about how the product *works*, it is out of scope.
+
+That test has one deliberate exception, named in [04-cli.md](04-cli.md): `start` and `stop`
+launch the compiled browser locally, so that "compile it and look at it" does not require
+leaving the tool. They start a browser and stop it. They do not start the sidecar, they read
+no product configuration, and they must stay that way — that pair is the door through which a
+build tool quietly becomes a second implementation of the product.
+
+---
+
 Every term used by this tool is defined here, once. If a word is not in this table, it does
 not appear in the manifest, in command output, or in the other documents.
 
