@@ -79,7 +79,7 @@ The two artifacts are produced in **different places**, and on purpose:
 
 | artifact            | built where                                                                 | why                                                                                          |
 | ------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| the toolchain image | a machine with the engine and the time — by hand or on a self-hosted runner | it is roughly 7 GB and over an hour; a hosted runner would re-clone Firefox on every release |
+| the toolchain image | a machine with the engine and the time — by hand or on a self-hosted runner | it is 7.3 GB as measured on `0.1.0`, and a cold build clones Firefox and runs `mach bootstrap`; a hosted runner would pay that on every release |
 | the npm package     | the hosted `publish` job                                                    | seconds                                                                                      |
 
 So the order of a release is: **build and push the image first, then tag.** The publish job

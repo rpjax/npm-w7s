@@ -70,6 +70,24 @@ of w7s.
 Firefox file is a file comparison against `/gecko-pristine`, not a git query. The tool needs
 no git at all to apply modifications.
 
+### What the image actually weighs
+
+Measured on the first build of `0.1.0`:
+
+| fact                       | value                                                            |
+| -------------------------- | ---------------------------------------------------------------- |
+| image size                 | 7.3 GB                                                           |
+| Firefox commit             | `feec67e62a5148b41fd017ccbbc463e8a6f9e83d`                        |
+| milestone reported by mach | `153.2.0`                                                        |
+| rust                       | `1.90.0`, with sccache `0.17.0`                                  |
+| default user               | `w7s` — non-root, because root ignores the `/gecko-pristine` mode |
+| rebuild with a warm layer cache | ~3.5 minutes                                                 |
+
+A cold build was not separately timed; it is dominated by the Firefox clone and
+`mach bootstrap`, both of which are network-bound. Plan for it in tens of minutes, not
+seconds — which is the whole reason the image is built out of band and never in a hosted CI
+job (see [09-release.md](09-release.md)).
+
 A **toolchain container** is a container started from that image. Every command that
 compiles, packages, or runs a test runs inside one. Nothing in this tool executes on the
 host machine except the tool itself.
