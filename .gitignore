@@ -1,6 +1,6 @@
 node_modules/
 dist/
 out/
-*.dockup.json
-!examples/**/*.dockup.json
-rodrigopjax-dockup-*.tgz
+w7s.json
+!examples/**/w7s.json
+rodrigopjax-w7s-*.tgz

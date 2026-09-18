@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug in dockup
+description: Report a bug in w7s
 title: "[Bug]: "
 labels: ["bug"]
 body:
@@ -14,14 +14,14 @@ body:
     attributes:
       label: Steps to reproduce
       placeholder: |
-        1. dockup validate --config app.dockup.json
+        1. w7s gecko validate
         2. ...
     validations:
       required: true
   - type: input
     id: version
     attributes:
-      label: dockup version
+      label: w7s version
       placeholder: 1.1.0
     validations:
       required: true

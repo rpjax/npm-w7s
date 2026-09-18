@@ -4,12 +4,11 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.x     | :white_check_mark: |
-| < 1.0   | :x:                |
+| 0.x     | :white_check_mark: |
 
 ## Reporting a Vulnerability
 
-Please report security issues privately via [GitHub Security Advisories](https://github.com/rpjax/npm-dockup/security/advisories/new).
+Please report security issues privately via [GitHub Security Advisories](https://github.com/rpjax/npm-w7s/security/advisories/new).
 
 Do not open public issues for vulnerabilities.
 
