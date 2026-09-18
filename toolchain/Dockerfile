@@ -94,7 +94,8 @@ RUN useradd -m -s /bin/bash w7s \
  && if [ -d /root/.mozbuild ]; then mv /root/.mozbuild /home/w7s/.mozbuild; \
     else mkdir -p /home/w7s/.mozbuild; fi \
  && chown -R w7s:w7s /home/w7s \
- && mkdir -p /workspace && chown w7s:w7s /workspace
+ && mkdir -p /workspace && chown w7s:w7s /workspace \
+ && git config --system --add safe.directory /gecko-pristine
 
 ENV HOME=/home/w7s \
     MOZBUILD_STATE_PATH=/home/w7s/.mozbuild
