@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/rpjax/npm-w7s/main/schema/w7s.schema.json",
+  "title": "w7s manifest",
+  "description": "Two keys only: modifications and tests. Unknown keys are errors.",
+  "type": "object",
+  "required": ["modifications", "tests"],
+  "additionalProperties": false,
+  "properties": {
+    "modifications": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/modification" }
+    },
+    "tests": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/test" }
+    }
+  },
+  "$defs": {
+    "fileMapping": {
+      "type": "object",
+      "required": ["localPath", "geckoPath"],
+      "additionalProperties": false,
+      "properties": {
+        "localPath": { "type": "string", "minLength": 1 },
+        "geckoPath": { "type": "string", "minLength": 1 }
+      }
+    },
+    "directoryModification": {
+      "type": "object",
+      "required": ["name", "description", "type", "localPath", "geckoPath", "replacesGeckoSource"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "minLength": 1 },
+        "type": { "const": "directory" },
+        "localPath": { "type": "string", "minLength": 1 },
+        "geckoPath": { "type": "string", "minLength": 1 },
+        "replacesGeckoSource": { "type": "boolean" }
+      }
+    },
+    "filesModification": {
+      "type": "object",
+      "required": ["name", "description", "type", "files", "replacesGeckoSource"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "minLength": 1 },
+        "type": { "const": "files" },
+        "files": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/fileMapping" }
+        },
+        "replacesGeckoSource": { "type": "boolean" }
+      }
+    },
+    "modification": {
+      "oneOf": [
+        { "$ref": "#/$defs/directoryModification" },
+        { "$ref": "#/$defs/filesModification" }
+      ]
+    },
+    "test": {
+      "type": "object",
+      "required": [
+        "name",
+        "description",
+        "entryPoint",
+        "runner",
+        "workingDirectory",
+        "classification",
+        "dependsOn",
+        "verifies"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "minLength": 1 },
+        "entryPoint": { "type": "string", "minLength": 1 },
+        "runner": { "type": "string", "minLength": 1 },
+        "workingDirectory": { "type": "string", "minLength": 1 },
+        "classification": { "type": "string", "enum": ["release-gate", "diagnostic"] },
+        "dependsOn": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["gecko-source", "gecko-binary", "sidecar-package"]
+          }
+        },
+        "verifies": { "type": "string", "enum": ["build-output", "released-image"] },
+        "arguments": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "extraPackages": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "networkAccess": { "type": "boolean" },
+        "report": { "type": "string", "minLength": 1 },
+        "timeoutSeconds": { "type": "number", "minimum": 0 },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

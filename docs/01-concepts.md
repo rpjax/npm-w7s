@@ -68,6 +68,37 @@ must survive between containers, or every compile starts from nothing. A volume 
 by copying from `/gecko-pristine` is a local file copy — no network, no clone, no
 verification step.
 
+## The life of the binary
+
+The single most common misunderstanding of this design is thinking the compiled browser comes
+from the toolchain image. It does not. **What the image carries is source code — text files.**
+The binary is created on the developer's machine, by compiling, and it is never rebuilt after
+that.
+
+In order:
+
+1. **The image is built, once per w7s release.** Firefox's source at the pinned version goes
+   in, together with the compiler. No binary goes in.
+2. **`toolchain --pull`** brings that image to the machine.
+3. **`make gecko-source`** copies the source out of the image into a volume and writes the
+   declared modifications over it. Still only text.
+4. **`make gecko-binary`** runs the compiler, inside a container from that image, over that
+   volume. **This is where the binary is born**, and the build directory persists in a volume
+   so the next compile is incremental.
+5. **`start`** runs it. Steps 3 to 5 are the daily loop.
+
+Then, only when delivering:
+
+6. **`make sidecar-package`** copies the binary out of the volume into
+   `dist/<target>/firefox.tar.gz`. A copy, compressed — not a second build. This step exists
+   for one dull reason: a container engine cannot copy out of a volume into an image build, so
+   the bytes have to become an ordinary file first.
+7. **dockup** builds the product image, copying that archive in and expanding it.
+
+So the binary is compiled once and copied twice. There is no path in this design where
+production and development compile from different sources, because there is only one act of
+compiling.
+
 ## Sources of truth
 
 | question | answered by |
@@ -82,6 +113,15 @@ verification step.
 **This tool never builds an image.** Its own toolchain image is built by its own CI and only
 ever pulled. The product image — the one that ships — is built by dockup. See
 [06-provider.md](06-provider.md).
+
+A known simplification lives here, deliberately unbuilt: `sidecar-package` could be the
+product image itself, produced by this tool and merely referenced by dockup, which would
+remove the archive step entirely. It is not done for two reasons. dockup has no way today to
+consume an image produced by a provider. And more importantly, producing that image would
+require this tool to know the product's base image, its library list, its entrypoint and its
+environment — which are deployment concerns that belong with the deployment configuration.
+The archive is the boundary: **this tool delivers the browser, dockup decides what wraps
+it.**
 
 **This tool never compiles on a host.** There is no native toolchain requirement beyond
 Node and a container engine.
