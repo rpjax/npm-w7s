@@ -6,3 +6,4 @@ w7s.json
 rodrigopjax-w7s-*.tgz
 toolchain/*.tar.gz
 toolchain/*.sha256
+test/fixtures/pristine-tiny/

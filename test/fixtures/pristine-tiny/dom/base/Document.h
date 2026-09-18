@@ -1,1 +1,0 @@
-// pristine Document.h

@@ -3,7 +3,7 @@ import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync } f
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { copyPristineTiny, fixturePristineTiny } from "../fixtures/pristine-tiny.js";
+import { copyPristineTiny } from "../fixtures/pristine-tiny.js";
 import { createFakePorts, writeJson, type FakeEngine } from "./fakes.js";
 import { createProgram } from "../../src/cli/program.js";
 import type { Ports } from "../../src/ports/index.js";
@@ -114,4 +114,4 @@ export async function runProgram(
   };
 }
 
-export { fixturePristineTiny, cpSync };
+export { cpSync };

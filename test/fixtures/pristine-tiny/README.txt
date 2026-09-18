@@ -1,1 +1,0 @@
-firefox pristine fixture
