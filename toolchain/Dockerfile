@@ -34,6 +34,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PATH=/usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Host packages needed before bootstrap / runners.
+# apt lists stay until after bootstrap — mach installs more packages itself.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates \
       curl \
@@ -48,7 +49,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       jq \
       pkg-config \
       libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
+      unzip
 
 # --- 1. Pristine tree at /gecko-pristine ---
 # Shallow clone on the pin tag, then prove HEAD is the pinned commit (tags can move).
@@ -59,7 +60,8 @@ RUN git clone --depth 1 --branch "${FIREFOX_TAG}" "${FIREFOX_REMOTE}" /gecko-pri
 WORKDIR /gecko-pristine
 
 # --- 2. mach bootstrap (needs the tree) ---
-RUN ./mach --no-interactive bootstrap --application-choice browser
+RUN ./mach --no-interactive bootstrap --application-choice browser \
+ && rm -rf /var/lib/apt/lists/*
 
 # --- 3. Rust pin 1.90.0 (bootstrap installs 1.98+; ESR 153 configure breaks on x86_64-pc-linux-gnu) ---
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
