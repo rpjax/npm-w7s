@@ -8,6 +8,14 @@ While the version is `0.x`, a minor release may break; every entry that breaks s
 
 ## [Unreleased]
 
+### Decided, not yet implemented
+
+- **The Gecko source leaves the toolchain image in 0.2.0** and becomes a manifest
+  declaration, verified by commit. The compiler toolchain stays in the image, because
+  `mach bootstrap` is not verifiable — only freezable. `test` and `start` are removed. The
+  reasoning is recorded in `docs/11-decision-source-leaves-the-image.md`; this is a decision,
+  not a proposal.
+
 ## [0.1.0] - 2026-09-18
 
 First release. `w7s` builds the Speculum Gecko engine, and that is its entire purpose.

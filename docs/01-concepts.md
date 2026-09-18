@@ -44,6 +44,12 @@ one holds what.
 
 ## The toolchain image
 
+> **Decided for 0.2.0: the Firefox tree leaves this image and becomes a manifest
+> declaration; the compiler toolchain stays.** Everything in this section about the pristine
+> tree living in the image describes `0.1.0` only. See
+> [11-decision-source-leaves-the-image.md](11-decision-source-leaves-the-image.md) before
+> changing it.
+
 One image, published by this package and versioned with it:
 
 ```
