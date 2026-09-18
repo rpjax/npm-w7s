@@ -39,7 +39,7 @@ describe("make e2e", () => {
 
       const paths = resolveWorkspace(ws.dir);
       assert.equal(
-        currencyOf("sidecar-package", ws.dir, paths.sidecarStamp, payload1.fingerprint).status,
+        currencyOf("sidecar-package", ws.dir, paths.sidecarPackage, payload1.fingerprint).status,
         "current",
       );
     } finally {

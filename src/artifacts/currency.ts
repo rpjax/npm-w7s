@@ -6,6 +6,7 @@ import { ARTIFACT_NAMES } from "../manifest/types.js";
 export const STATE_DIR = ".w7s";
 export const STATE_FILE = "state.json";
 export const VOLUME_STAMP = ".w7s-stamp.json";
+export const BUILD_JSON = "build.json";
 
 export type CurrencyStatus = "current" | "behind" | "missing";
 
@@ -44,6 +45,10 @@ export function volumeStampPath(volumeRoot: string): string {
   return join(volumeRoot, VOLUME_STAMP);
 }
 
+export function buildJsonPath(packageDir: string): string {
+  return join(packageDir, BUILD_JSON);
+}
+
 export function readRepoState(manifestDir: string): StateFile {
   return readJson<StateFile>(statePath(manifestDir)) ?? { artifacts: {} };
 }
@@ -53,13 +58,36 @@ export function readVolumeStamp(volumeRoot: string): ArtifactRecord | null {
 }
 
 /**
- * Dual-stamp currency: repo .w7s/state.json AND stamp inside the volume.
+ * sidecar-package has no .w7s/volumes stamp — its record is build.json inside dist/<target>/.
+ */
+export function readPackageRecord(packageDir: string): ArtifactRecord | null {
+  const build = readJson<{ fingerprint?: string; timestamp?: string }>(buildJsonPath(packageDir));
+  if (!build?.fingerprint) {
+    return null;
+  }
+  return {
+    fingerprint: build.fingerprint,
+    updatedAt: build.timestamp ?? "",
+  };
+}
+
+function readInnerRecord(name: ArtifactName, artifactRoot: string): ArtifactRecord | null {
+  if (name === "sidecar-package") {
+    return readPackageRecord(artifactRoot);
+  }
+  return readVolumeStamp(artifactRoot);
+}
+
+/**
+ * Dual-stamp currency: repo .w7s/state.json AND the artifact's own record.
+ * For gecko-source / gecko-binary: .w7s-stamp.json inside the volume.
+ * For sidecar-package: build.json inside dist/<target>/.
  * Disagreement => missing, never current.
  */
 export function currencyOf(
   name: ArtifactName,
   manifestDir: string,
-  volumeRoot: string | null,
+  artifactRoot: string | null,
   expectedFingerprint?: string,
 ): CurrencyReport {
   const repo = readRepoState(manifestDir).artifacts[name];
@@ -67,24 +95,31 @@ export function currencyOf(
     return { name, status: "missing", reason: "no repo stamp" };
   }
 
-  if (volumeRoot === null) {
-    return { name, status: "missing", reason: "volume path unavailable" };
+  if (artifactRoot === null) {
+    return { name, status: "missing", reason: "artifact path unavailable" };
   }
 
-  if (!existsSync(volumeRoot)) {
-    return { name, status: "missing", reason: "volume absent" };
+  if (!existsSync(artifactRoot)) {
+    return { name, status: "missing", reason: "artifact absent" };
   }
 
-  const volume = readVolumeStamp(volumeRoot);
-  if (!volume) {
-    return { name, status: "missing", reason: "volume stamp absent" };
-  }
-
-  if (repo.fingerprint !== volume.fingerprint) {
+  const inner = readInnerRecord(name, artifactRoot);
+  if (!inner) {
     return {
       name,
       status: "missing",
-      reason: "repo and volume stamps disagree",
+      reason: name === "sidecar-package" ? "build.json absent" : "volume stamp absent",
+    };
+  }
+
+  if (repo.fingerprint !== inner.fingerprint) {
+    return {
+      name,
+      status: "missing",
+      reason:
+        name === "sidecar-package"
+          ? "repo stamp and build.json disagree"
+          : "repo and volume stamps disagree",
       fingerprint: repo.fingerprint,
     };
   }
@@ -104,7 +139,7 @@ export function currencyOf(
 export function stampArtifact(
   name: ArtifactName,
   manifestDir: string,
-  volumeRoot: string,
+  artifactRoot: string,
   fingerprint: string,
   updatedAt: string,
 ): void {
@@ -116,14 +151,19 @@ export function stampArtifact(
   state.artifacts[name] = record;
   writeFileSync(statePath(manifestDir), `${JSON.stringify(state, null, 2)}\n`, "utf8");
 
-  mkdirSync(volumeRoot, { recursive: true });
-  writeFileSync(volumeStampPath(volumeRoot), `${JSON.stringify(record, null, 2)}\n`, "utf8");
+  if (name === "sidecar-package") {
+    // build.json is written by writeSidecarPackage — do not place a volume stamp in dist/.
+    return;
+  }
+
+  mkdirSync(artifactRoot, { recursive: true });
+  writeFileSync(volumeStampPath(artifactRoot), `${JSON.stringify(record, null, 2)}\n`, "utf8");
 }
 
 export function clearArtifactStamp(
   name: ArtifactName,
   manifestDir: string,
-  volumeRoot: string | null,
+  artifactRoot: string | null,
 ): void {
   const state = readRepoState(manifestDir);
   delete state.artifacts[name];
@@ -131,9 +171,13 @@ export function clearArtifactStamp(
   mkdirSync(stateDir, { recursive: true });
   writeFileSync(statePath(manifestDir), `${JSON.stringify(state, null, 2)}\n`, "utf8");
 
-  if (volumeRoot && existsSync(volumeStampPath(volumeRoot))) {
+  if (name === "sidecar-package") {
+    return;
+  }
+
+  if (artifactRoot && existsSync(volumeStampPath(artifactRoot))) {
     try {
-      unlinkSync(volumeStampPath(volumeRoot));
+      unlinkSync(volumeStampPath(artifactRoot));
     } catch {
       // ignore missing stamp
     }
@@ -142,10 +186,10 @@ export function clearArtifactStamp(
 
 export function allCurrency(
   manifestDir: string,
-  volumeRoots: Partial<Record<ArtifactName, string | null>>,
+  artifactRoots: Partial<Record<ArtifactName, string | null>>,
   expectedFingerprint?: string,
 ): CurrencyReport[] {
   return ARTIFACT_NAMES.map((name) =>
-    currencyOf(name, manifestDir, volumeRoots[name] ?? null, expectedFingerprint),
+    currencyOf(name, manifestDir, artifactRoots[name] ?? null, expectedFingerprint),
   );
 }

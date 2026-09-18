@@ -174,7 +174,7 @@ async function produceSidecarPackage(options: MakeOptions, fingerprint: string):
     {
       "gecko-source": paths.geckoSource,
       "gecko-binary": paths.geckoBinary,
-      "sidecar-package": paths.sidecarStamp,
+      "sidecar-package": paths.sidecarPackage,
     },
     fingerprint,
   );
@@ -213,7 +213,7 @@ async function produceSidecarPackage(options: MakeOptions, fingerprint: string):
     stampArtifact(
       "sidecar-package",
       manifestDir,
-      paths.sidecarStamp,
+      paths.sidecarPackage,
       fingerprint,
       ports.clock.now().toISOString(),
     );

@@ -42,7 +42,7 @@ export async function runTest(
     {
       "gecko-source": ctx.paths.geckoSource,
       "gecko-binary": ctx.paths.geckoBinary,
-      "sidecar-package": ctx.paths.sidecarStamp,
+      "sidecar-package": ctx.paths.sidecarPackage,
     },
     fingerprint,
   );

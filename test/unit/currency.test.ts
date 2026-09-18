@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -7,6 +7,7 @@ import {
   currencyOf,
   stampArtifact,
   volumeStampPath,
+  buildJsonPath,
   readRepoState,
 } from "../../src/artifacts/currency.js";
 
@@ -48,22 +49,56 @@ describe("currency", () => {
     }
   });
 
-  it("two-record disagreement => missing, never current", () => {
+  it("two-record disagreement for volumes => missing, never current", () => {
     const root = mkdtempSync(join(tmpdir(), "w7s-cur4-"));
     try {
       const volume = join(root, "volume");
-      stampArtifact("sidecar-package", root, volume, "repo-fp-aaaa", "2026-09-18T12:00:00.000Z");
+      stampArtifact("gecko-source", root, volume, "repo-fp-aaaa", "2026-09-18T12:00:00.000Z");
       writeFileSync(
         volumeStampPath(volume),
         `${JSON.stringify({ fingerprint: "volume-fp-bbbb", updatedAt: "2026-09-18T12:00:00.000Z" }, null, 2)}\n`,
       );
-      const repo = readRepoState(root).artifacts["sidecar-package"];
-      assert.ok(repo);
-      assert.notEqual(repo.fingerprint, "volume-fp-bbbb");
-
-      const report = currencyOf("sidecar-package", root, volume, "repo-fp-aaaa");
+      const report = currencyOf("gecko-source", root, volume, "repo-fp-aaaa");
       assert.equal(report.status, "missing");
       assert.match(String(report.reason), /disagree/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("sidecar-package currency reads build.json, not a volume stamp", () => {
+    const root = mkdtempSync(join(tmpdir(), "w7s-cur5-"));
+    try {
+      const pkg = join(root, "dist", "linux-x64");
+      mkdirSync(pkg, { recursive: true });
+      writeFileSync(
+        buildJsonPath(pkg),
+        `${JSON.stringify({ fingerprint: "pkg-fp-cccc", timestamp: "2026-09-18T12:00:00.000Z" }, null, 2)}\n`,
+      );
+      stampArtifact("sidecar-package", root, pkg, "pkg-fp-cccc", "2026-09-18T12:00:00.000Z");
+      assert.equal(existsSync(volumeStampPath(pkg)), false);
+      const report = currencyOf("sidecar-package", root, pkg, "pkg-fp-cccc");
+      assert.equal(report.status, "current");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("sidecar-package reports missing when build.json disagrees with repo stamp", () => {
+    const root = mkdtempSync(join(tmpdir(), "w7s-cur6-"));
+    try {
+      const pkg = join(root, "dist", "linux-x64");
+      mkdirSync(pkg, { recursive: true });
+      writeFileSync(
+        buildJsonPath(pkg),
+        `${JSON.stringify({ fingerprint: "build-fp", timestamp: "2026-09-18T12:00:00.000Z" }, null, 2)}\n`,
+      );
+      stampArtifact("sidecar-package", root, pkg, "repo-fp", "2026-09-18T12:00:00.000Z");
+      const repo = readRepoState(root).artifacts["sidecar-package"];
+      assert.equal(repo?.fingerprint, "repo-fp");
+      const report = currencyOf("sidecar-package", root, pkg, "repo-fp");
+      assert.equal(report.status, "missing");
+      assert.match(String(report.reason), /build\.json/);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
