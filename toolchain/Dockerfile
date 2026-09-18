@@ -90,7 +90,7 @@ RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
 # so chmod a-w actually stops writes (GATE 2: touch /gecko-pristine/teste).
 RUN chmod -R a-w /gecko-pristine
 
-RUN useradd -m -u 1000 -s /bin/bash w7s \
+RUN useradd -m -s /bin/bash w7s \
  && if [ -d /root/.mozbuild ]; then mv /root/.mozbuild /home/w7s/.mozbuild; \
     else mkdir -p /home/w7s/.mozbuild; fi \
  && chown -R w7s:w7s /home/w7s \
