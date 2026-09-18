@@ -12,16 +12,16 @@ their classification, and reports what ran and what did not.
 Every field below is required. There are no defaults, including for the ones where a default
 would be convenient — see the last section of [01-concepts.md](01-concepts.md).
 
-| field | meaning |
-|---|---|
-| `name` | what this test is |
-| `description` | what it proves; a test nobody can justify is a test nobody can delete safely |
-| `entryPoint` | the file to execute, relative to the manifest |
-| `runner` | the command that executes it — the entry point is appended as its last argument |
-| `workingDirectory` | where the command runs from |
-| `classification` | `"release-gate"` or `"diagnostic"` |
-| `dependsOn` | artifacts that must be current, by name; `[]` when none |
-| `verifies` | `"build-output"` or `"released-image"` |
+| field              | meaning                                                                         |
+| ------------------ | ------------------------------------------------------------------------------- |
+| `name`             | what this test is                                                               |
+| `description`      | what it proves; a test nobody can justify is a test nobody can delete safely    |
+| `entryPoint`       | the file to execute, relative to the manifest                                   |
+| `runner`           | the command that executes it — the entry point is appended as its last argument |
+| `workingDirectory` | where the command runs from                                                     |
+| `classification`   | `"release-gate"` or `"diagnostic"`                                              |
+| `dependsOn`        | artifacts that must be current, by name; `[]` when none                         |
+| `verifies`         | `"build-output"` or `"released-image"`                                          |
 
 Optional, and meaningful only when present: `arguments`, `environment`, `extraPackages`,
 `networkAccess`, `report`, `timeoutSeconds`, `tags`.
@@ -99,17 +99,17 @@ is reported as blocked, with the command that fixes it — not as a red test.
 
 ## Selecting
 
-| selector | effect |
-|---|---|
-| (none) | every test, in declaration order |
-| `--name <name>` | repeatable |
-| `--tag <tag>` | repeatable |
-| `--classification release-gate` | one classification |
-| `--arguments <text>` | appended verbatim to the selected test's command |
-| `--list` | every test, its classification, its dependencies, and whether it can run now |
-| `--stop-on-failure` / `--continue-on-failure` | one or the other, explicitly |
-| `--strict` | a blocked test counts as a failure; diagnostics are excluded from the count |
-| `--json` | one object per test, plus the contents of `report` when declared |
+| selector                                      | effect                                                                       |
+| --------------------------------------------- | ---------------------------------------------------------------------------- |
+| (none)                                        | every test, in declaration order                                             |
+| `--name <name>`                               | repeatable                                                                   |
+| `--tag <tag>`                                 | repeatable                                                                   |
+| `--classification release-gate`               | one classification                                                           |
+| `--arguments <text>`                          | appended verbatim to the selected test's command                             |
+| `--list`                                      | every test, its classification, its dependencies, and whether it can run now |
+| `--stop-on-failure` / `--continue-on-failure` | one or the other, explicitly                                                 |
+| `--strict`                                    | a blocked test counts as a failure; diagnostics are excluded from the count  |
+| `--json`                                      | one object per test, plus the contents of `report` when declared             |
 
 There is no `--retry`, no `--skip` and no `--allow-failure`. Not an opinion about testing —
 an opinion about this tool's surface: there will be no flag whose only function is to hide a
@@ -134,7 +134,7 @@ $ w7s gecko test
 
 The tool never parses a test's output. It captures stdout and stderr to a log, prints the
 tail on failure, and names the path. If a test writes structured results at its declared
-`report` path, those are merged into `--json` as data — formatting *why* something failed
+`report` path, those are merged into `--json` as data — formatting _why_ something failed
 belongs to whoever wrote the test, and the day that format changes the tool must not care.
 
 **A run that did not execute every release-gate test is reported as incomplete, never as

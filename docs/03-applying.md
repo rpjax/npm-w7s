@@ -10,11 +10,11 @@ command: there is one production verb, `make` — see [04-cli.md](04-cli.md).
 
 For every file a modification declares, three contents are in play:
 
-| name | where it comes from |
-|---|---|
+| name     | where it comes from                                             |
+| -------- | --------------------------------------------------------------- |
 | pristine | `/gecko-pristine/<geckoPath>` in the toolchain image, read-only |
-| declared | the file at `localPath` in the repository, normalized to LF |
-| current | `<geckoPath>` in the working tree |
+| declared | the file at `localPath` in the repository, normalized to LF     |
+| current  | `<geckoPath>` in the working tree                               |
 
 And three outcomes:
 

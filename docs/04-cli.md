@@ -8,24 +8,24 @@ already said.
 
 Every option is spelled out. There are no positional surprises and no inferred defaults.
 
-| option | effect |
-|---|---|
-| `--manifest <path>` | use this manifest instead of discovering one |
-| `--json` | machine-readable output, on every command |
-| `-q, --quiet` | errors and warnings only |
-| `-v, --verbose` | debug logging |
-| `--dry-run` | write nothing; print what would happen |
-| `-y, --yes` | assume yes; required for refusing commands outside a terminal |
-| `--no-color` | plain output |
-| `--timeout <seconds>` | per-step timeout |
-| `-V, --version` | print the w7s version and the toolchain image tag it requires |
+| option                | effect                                                        |
+| --------------------- | ------------------------------------------------------------- |
+| `--manifest <path>`   | use this manifest instead of discovering one                  |
+| `--json`              | machine-readable output, on every command                     |
+| `-q, --quiet`         | errors and warnings only                                      |
+| `-v, --verbose`       | debug logging                                                 |
+| `--dry-run`           | write nothing; print what would happen                        |
+| `-y, --yes`           | assume yes; required for refusing commands outside a terminal |
+| `--no-color`          | plain output                                                  |
+| `--timeout <seconds>` | per-step timeout                                              |
+| `-V, --version`       | print the w7s version and the toolchain image tag it requires |
 
 ## Commands
 
 ### Producing
 
-| command | what it does |
-|---|---|
+| command                     | what it does                                                                              |
+| --------------------------- | ----------------------------------------------------------------------------------------- |
 | `w7s gecko make <artifact>` | produces the named artifact, doing whatever it needs and skipping what is already current |
 
 One verb. Naming the artifact you want is the whole interface:
@@ -49,34 +49,33 @@ w7s gecko make gecko-binary --only    # fails if gecko-source is not current
 
 ### Inspecting
 
-| command | what it does |
-|---|---|
-| `w7s gecko status` | every artifact, whether it is current, the production chain, and the next command to run |
-| `w7s gecko status --upgrades` | the files upstream changed since our replacements were written, with diffs |
-| `w7s gecko paths [--artifact <name>]` | where each artifact lives, in both Windows and container spelling |
-| `w7s gecko fingerprint` | the fingerprint of the modified tree |
-| `w7s gecko validate` | the manifest against the schema, the modifications against the pristine tree |
+| command                               | what it does                                                                             |
+| ------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `w7s gecko status`                    | every artifact, whether it is current, the production chain, and the next command to run |
+| `w7s gecko status --upgrades`         | the files upstream changed since our replacements were written, with diffs               |
+| `w7s gecko paths [--artifact <name>]` | where each artifact lives, in both Windows and container spelling                        |
+| `w7s gecko fingerprint`               | the fingerprint of the modified tree                                                     |
+| `w7s gecko validate`                  | the manifest against the schema, the modifications against the pristine tree             |
 
 ### Running
 
-| command | what it does |
-|---|---|
-| `w7s gecko start` | starts the sidecar from `gecko-binary` for local iteration |
-| `w7s gecko stop` | stops what `start` started |
-| `w7s gecko test [selectors]` | runs declared tests — [05-tests.md](05-tests.md) |
-| `w7s gecko shell [-- command]` | a shell in a toolchain container, with the tree mounted |
+| command                        | what it does                                               |
+| ------------------------------ | ---------------------------------------------------------- |
+| `w7s gecko start`              | starts the sidecar from `gecko-binary` for local iteration |
+| `w7s gecko stop`               | stops what `start` started                                 |
+| `w7s gecko test [selectors]`   | runs declared tests — [05-tests.md](05-tests.md)           |
+| `w7s gecko shell [-- command]` | a shell in a toolchain container, with the tree mounted    |
 
 ### Maintaining
 
 The toolchain image's digest is verified by **every** command that starts a container, not
 only by `toolchain`. That is a guarantee, not a flag.
 
-
-| command | what it does |
-|---|---|
-| `w7s gecko toolchain --pull` | pulls the toolchain image this w7s version requires |
-| `w7s gecko capture` | a working-tree edit into a modification — [03-applying.md](03-applying.md) |
-| `w7s gecko reset <artifact>` | discards an artifact so the next `make` rebuilds it |
+| command                      | what it does                                                               |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| `w7s gecko toolchain --pull` | pulls the toolchain image this w7s version requires                        |
+| `w7s gecko capture`          | a working-tree edit into a modification — [03-applying.md](03-applying.md) |
+| `w7s gecko reset <artifact>` | discards an artifact so the next `make` rebuilds it                        |
 
 There is no `doctor`: `status` is for a person, `validate` is for a pipeline, and in the
 Speculum repository "doctor" already means diagnosing a capture.
@@ -95,31 +94,31 @@ one does.
 Failures carry a phase, and the exit code is derived from it rather than chosen at the throw
 site. One class of failure always exits the same way.
 
-| phase | meaning | exit |
-|---|---|---|
-| `Cli` | bad arguments | 2 |
-| `Manifest` | missing, unparseable, or schema-invalid | 2 |
-| `WorkingTree` | a file was edited in the working tree | 3 |
-| `Declaration` | a modification contradicts the pristine tree, or two entries collide | 6 |
-| `Toolchain` | container engine unavailable, image missing, memory insufficient | 4 |
-| `NotCurrent` | an artifact exists but is behind (raised only under `--check`) | 5 |
-| `Test` | a release-gate test failed | 7 |
-| `Execution` | an invoked command failed, or an unexpected error | 1 |
+| phase         | meaning                                                              | exit |
+| ------------- | -------------------------------------------------------------------- | ---- |
+| `Cli`         | bad arguments                                                        | 2    |
+| `Manifest`    | missing, unparseable, or schema-invalid                              | 2    |
+| `WorkingTree` | a file was edited in the working tree                                | 3    |
+| `Declaration` | a modification contradicts the pristine tree, or two entries collide | 6    |
+| `Toolchain`   | container engine unavailable, image missing, memory insufficient     | 4    |
+| `NotCurrent`  | an artifact exists but is behind (raised only under `--check`)       | 5    |
+| `Test`        | a release-gate test failed                                           | 7    |
+| `Execution`   | an invoked command failed, or an unexpected error                    | 1    |
 
 ## Exit codes
 
 Stable, because dockup and pipelines branch on them.
 
-| code | meaning |
-|---|---|
-| 0 | success |
-| 1 | an invoked command failed |
-| 2 | bad arguments or bad manifest |
-| 3 | the working tree holds an uncaptured edit |
-| 4 | the toolchain is unavailable here |
-| 5 | an artifact is not current (`--check`) |
-| 6 | a declaration is wrong |
-| 7 | a release-gate test failed |
+| code | meaning                                   |
+| ---- | ----------------------------------------- |
+| 0    | success                                   |
+| 1    | an invoked command failed                 |
+| 2    | bad arguments or bad manifest             |
+| 3    | the working tree holds an uncaptured edit |
+| 4    | the toolchain is unavailable here         |
+| 5    | an artifact is not current (`--check`)    |
+| 6    | a declaration is wrong                    |
+| 7    | a release-gate test failed                |
 
 Every failure prints the cause and, on the next line, the command that addresses it.
 
@@ -152,25 +151,29 @@ Exactly one JSON document on stdout. Subprocess output is captured, never interl
 Success:
 
 ```jsonc
-{ "ok": true,
+{
+  "ok": true,
   "command": "gecko make gecko-source",
   "fingerprint": "a3f19c7b21d4",
   "elapsedSeconds": 1.4,
   "result": { "filesWritten": 2, "filesUnchanged": 43 },
-  "nextSteps": ["w7s gecko make gecko-binary"] }
+  "nextSteps": ["w7s gecko make gecko-binary"],
+}
 ```
 
 Failure:
 
 ```jsonc
-{ "ok": false,
+{
+  "ok": false,
   "command": "gecko make gecko-source",
   "phase": "WorkingTree",
   "message": "3 files in the working tree differ from the manifest.",
   "hint": "w7s gecko capture --all --into <modification>",
   "detail": ["docshell/base/BrowsingContext.cpp", "dom/base/Document.cpp", "dom/base/Document.h"],
   "elapsedSeconds": 0.6,
-  "exitCode": 3 }
+  "exitCode": 3,
+}
 ```
 
 `ok` is always present and always boolean; `phase` and `exitCode` are always present on

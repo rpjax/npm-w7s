@@ -7,9 +7,9 @@ ritual too many.
 
 Two artifacts, released together and never independently:
 
-| artifact | published to |
-|---|---|
-| `@rodrigopjax/w7s` | npm |
+| artifact                                | published to           |
+| --------------------------------------- | ---------------------- |
+| `@rodrigopjax/w7s`                      | npm                    |
 | `ghcr.io/rpjax/w7s-toolchain:<version>` | the container registry |
 
 They carry the same version because the tool and its toolchain — including the pinned Firefox
@@ -23,13 +23,13 @@ anything else. There is no override.
 
 Semantic versioning, read against the surface this tool actually exposes.
 
-| change | bump |
-|---|---|
-| a new command, a new optional manifest field, a new option | minor |
-| a Firefox ESR patch release in the toolchain, with no surface change | minor |
+| change                                                                             | bump      |
+| ---------------------------------------------------------------------------------- | --------- |
+| a new command, a new optional manifest field, a new option                         | minor     |
+| a Firefox ESR patch release in the toolchain, with no surface change               | minor     |
 | a renamed option, a newly required manifest field, a changed exit code or JSON key | **major** |
-| **a Firefox ESR series change** | **major** |
-| a fix with no surface change | patch |
+| **a Firefox ESR series change**                                                    | **major** |
+| a fix with no surface change                                                       | patch     |
 
 A Firefox series change is major because every file declared `replacesGeckoSource` was written
 against the old tree and must be reviewed against the new one. The upgrade report names them,
@@ -77,13 +77,13 @@ A tag on red never ships.
 
 The two artifacts are produced in **different places**, and on purpose:
 
-| artifact | built where | why |
-|---|---|---|
+| artifact            | built where                                                                 | why                                                                                          |
+| ------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | the toolchain image | a machine with the engine and the time — by hand or on a self-hosted runner | it is roughly 7 GB and over an hour; a hosted runner would re-clone Firefox on every release |
-| the npm package | the hosted `publish` job | seconds |
+| the npm package     | the hosted `publish` job                                                    | seconds                                                                                      |
 
 So the order of a release is: **build and push the image first, then tag.** The publish job
-does not build the image — it *verifies the image exists* for the version being published,
+does not build the image — it _verifies the image exists_ for the version being published,
 and fails if it does not:
 
 ```yaml
@@ -119,15 +119,15 @@ Three details:
   cannot skip the gates.
 
 This repository building its own toolchain image is not a contradiction of the boundary in
-[06-provider.md](06-provider.md): that boundary is about images in a *consumer's* repository.
+[06-provider.md](06-provider.md): that boundary is about images in a _consumer's_ repository.
 A package building the image it ships is building its own artifact.
 
 ## Secrets
 
-| secret | what it is |
-|---|---|
-| `NPM_TOKEN` | an npm automation token with publish rights on the `@rodrigopjax` scope — a classic token with enforced 2FA fails in CI |
-| registry write | the workflow's own token, via `permissions: packages: write` |
+| secret         | what it is                                                                                                              |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `NPM_TOKEN`    | an npm automation token with publish rights on the `@rodrigopjax` scope — a classic token with enforced 2FA fails in CI |
+| registry write | the workflow's own token, via `permissions: packages: write`                                                            |
 
 ## Branch protection
 

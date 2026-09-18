@@ -33,11 +33,11 @@ Applied in declaration order when the working tree is produced. Order matters on
 
 Required on every entry, without exception.
 
-| field | meaning |
-|---|---|
-| `name` | what this unit is, in words a reader recognizes |
-| `description` | why it exists; a unit nobody can justify is a unit nobody can delete safely |
-| `type` | `"directory"` or `"files"` — how the file set is declared |
+| field                 | meaning                                                                                                        |
+| --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `name`                | what this unit is, in words a reader recognizes                                                                |
+| `description`         | why it exists; a unit nobody can justify is a unit nobody can delete safely                                    |
+| `type`                | `"directory"` or `"files"` — how the file set is declared                                                      |
 | `replacesGeckoSource` | `true` if these files replace files that exist in the pristine Firefox tree, `false` if they are entirely ours |
 
 `replacesGeckoSource` is verified per file, in both directions:
@@ -51,12 +51,14 @@ into a directory declared `false` fails the next production step, naming the fil
 ### `type: "directory"`
 
 ```jsonc
-{ "name": "projection runtime",
+{
+  "name": "projection runtime",
   "description": "our C++ compiled inside Gecko — producer, CSSOM, input, control ABI",
   "type": "directory",
   "localPath": "./modifications/runtime",
   "geckoPath": ".",
-  "replacesGeckoSource": false }
+  "replacesGeckoSource": false,
+}
 ```
 
 Every file under `localPath` is written to the same relative path under `geckoPath`. The
@@ -72,16 +74,22 @@ need a subset, declare a `files` entry.
 ### `type: "files"`
 
 ```jsonc
-{ "name": "producer headers",
+{
+  "name": "producer headers",
   "description": "the portable C++ producer core, vendored into third_party",
   "type": "files",
   "files": [
-    { "localPath": "./producer/include/speculum/Producer.h",
-      "geckoPath": "third_party/speculum-producer/include/speculum/Producer.h" },
-    { "localPath": "./producer/include/speculum/Wire.h",
-      "geckoPath": "third_party/speculum-producer/include/speculum/Wire.h" }
+    {
+      "localPath": "./producer/include/speculum/Producer.h",
+      "geckoPath": "third_party/speculum-producer/include/speculum/Producer.h",
+    },
+    {
+      "localPath": "./producer/include/speculum/Wire.h",
+      "geckoPath": "third_party/speculum-producer/include/speculum/Wire.h",
+    },
   ],
-  "replacesGeckoSource": false }
+  "replacesGeckoSource": false,
+}
 ```
 
 For the cases where the repository layout and the Gecko layout genuinely differ.
@@ -121,73 +129,90 @@ tool deliberately does not interpret.
 ```jsonc
 {
   "modifications": [
-    { "name": "projection runtime",
+    {
+      "name": "projection runtime",
       "description": "our C++ compiled inside Gecko — producer, CSSOM, input, control ABI",
       "type": "directory",
       "localPath": "./modifications/runtime",
       "geckoPath": ".",
-      "replacesGeckoSource": false },
+      "replacesGeckoSource": false,
+    },
 
-    { "name": "runtime install points",
+    {
+      "name": "runtime install points",
       "description": "the Firefox files that call into the runtime — call sites, moz.build, IPDL",
       "type": "directory",
       "localPath": "./modifications/install",
       "geckoPath": ".",
-      "replacesGeckoSource": true },
+      "replacesGeckoSource": true,
+    },
 
-    { "name": "fork build configuration",
+    {
+      "name": "fork build configuration",
       "description": "the Speculum application definition in the Gecko build system",
       "type": "directory",
       "localPath": "./modifications/build-configuration",
       "geckoPath": ".",
-      "replacesGeckoSource": false },
+      "replacesGeckoSource": false,
+    },
 
-    { "name": "producer headers",
+    {
+      "name": "producer headers",
       "description": "the portable C++ producer core, vendored into third_party",
       "type": "directory",
       "localPath": "./producer/include",
       "geckoPath": "third_party/speculum-producer/include",
-      "replacesGeckoSource": false }
+      "replacesGeckoSource": false,
+    },
   ],
 
   "tests": [
-    { "name": "producer core",
+    {
+      "name": "producer core",
       "description": "hashing, encoding and the producer loop over a fake DOM",
       "entryPoint": "./tests/producer/run.sh",
       "runner": "bash",
       "workingDirectory": "./tests/producer",
       "classification": "release-gate",
       "dependsOn": [],
-      "verifies": "build-output" },
+      "verifies": "build-output",
+    },
 
-    { "name": "control ABI golden",
+    {
+      "name": "control ABI golden",
       "description": "the control ABI has not changed without someone deciding to",
       "entryPoint": "./tests/abi/Abi.Tests.csproj",
       "runner": "dotnet test",
       "workingDirectory": "./tests/abi",
       "classification": "release-gate",
       "dependsOn": [],
-      "verifies": "build-output" },
+      "verifies": "build-output",
+    },
 
-    { "name": "DOM projection parity",
+    {
+      "name": "DOM projection parity",
       "description": "one-to-one projection against the compiled Firefox",
       "entryPoint": "./tests/parity/main.mjs",
       "runner": "node",
       "workingDirectory": "./tests/parity",
       "classification": "release-gate",
       "dependsOn": ["gecko-binary"],
-      "verifies": "build-output" },
+      "verifies": "build-output",
+    },
 
-    { "name": "sidecar readiness",
+    {
+      "name": "sidecar readiness",
       "description": "the released sidecar answers /ready and serves one session",
       "entryPoint": "./tests/readiness/check.mjs",
       "runner": "node",
       "workingDirectory": "./tests/readiness",
       "classification": "release-gate",
       "dependsOn": ["sidecar-package"],
-      "verifies": "released-image" },
+      "verifies": "released-image",
+    },
 
-    { "name": "AVIF decode probe",
+    {
+      "name": "AVIF decode probe",
       "description": "theory: does AVIF decode land before the first frame is emitted?",
       "entryPoint": "./tests/avif/probe.py",
       "runner": "python3",
@@ -195,8 +220,9 @@ tool deliberately does not interpret.
       "classification": "diagnostic",
       "dependsOn": ["gecko-binary"],
       "verifies": "build-output",
-      "extraPackages": ["libavif-bin"] }
-  ]
+      "extraPackages": ["libavif-bin"],
+    },
+  ],
 }
 ```
 

@@ -8,11 +8,11 @@ not appear in the manifest, in command output, or in the other documents.
 An **artifact** is a named, versioned thing the pipeline produces. Artifacts are what
 commands take as arguments and what tests declare dependencies on.
 
-| artifact | what it is | produced from |
-|---|---|---|
-| `gecko-source` | the Firefox tree with our modifications applied | the pristine tree in the toolchain image + `modifications` |
-| `gecko-binary` | the compiled Firefox, our modifications included | `gecko-source` |
-| `sidecar-package` | the deliverable: the Firefox archive, plus a record of what produced it | `gecko-binary` |
+| artifact          | what it is                                                              | produced from                                              |
+| ----------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `gecko-source`    | the Firefox tree with our modifications applied                         | the pristine tree in the toolchain image + `modifications` |
+| `gecko-binary`    | the compiled Firefox, our modifications included                        | `gecko-source`                                             |
+| `sidecar-package` | the deliverable: the Firefox archive, plus a record of what produced it | `gecko-binary`                                             |
 
 Names say what the thing is. There is no `src`, no `obj`, no `dist` and no `payload` in this
 tool: those are compiler and packaging jargon that require the reader to already know which
@@ -59,14 +59,14 @@ have to override anyway is worse than reading it from the image that decides it.
 
 ## Where things live
 
-| location | holds | lifetime |
-|---|---|---|
-| the repository, on the developer's machine | the manifest, the modifications, the tests, the host projects | versioned |
-| `/gecko-pristine` in the toolchain image | the untouched Firefox tree | immutable, per w7s version |
-| the `gecko-source` volume | the working tree: pristine plus modifications | disposable, rebuilt by copy |
-| the `gecko-binary` volume | the build directory | disposable, rebuilt by compiling |
-| the build cache volume | compiler cache | disposable, self-healing |
-| `dist/` in the repository | the `sidecar-package`, one directory per target | generated, gitignored, visible |
+| location                                   | holds                                                         | lifetime                         |
+| ------------------------------------------ | ------------------------------------------------------------- | -------------------------------- |
+| the repository, on the developer's machine | the manifest, the modifications, the tests, the host projects | versioned                        |
+| `/gecko-pristine` in the toolchain image   | the untouched Firefox tree                                    | immutable, per w7s version       |
+| the `gecko-source` volume                  | the working tree: pristine plus modifications                 | disposable, rebuilt by copy      |
+| the `gecko-binary` volume                  | the build directory                                           | disposable, rebuilt by compiling |
+| the build cache volume                     | compiler cache                                                | disposable, self-healing         |
+| `dist/` in the repository                  | the `sidecar-package`, one directory per target               | generated, gitignored, visible   |
 
 The working tree is a volume rather than a container layer for one reason: a build directory
 must survive between containers, or every compile starts from nothing. A volume initialized
@@ -106,11 +106,11 @@ compiling.
 
 ## Sources of truth
 
-| question | answered by |
-|---|---|
-| which Firefox version | the installed w7s version |
-| what we change in it | `modifications` in the manifest |
-| what proves it works | `tests` in the manifest |
+| question                    | answered by                                                    |
+| --------------------------- | -------------------------------------------------------------- |
+| which Firefox version       | the installed w7s version                                      |
+| what we change in it        | `modifications` in the manifest                                |
+| what proves it works        | `tests` in the manifest                                        |
 | what the running product is | the `speculum.gecko.modifications` label on the released image |
 
 ## Boundaries

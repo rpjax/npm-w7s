@@ -21,12 +21,14 @@ Four commands. Nothing else about w7s is dockup's concern.
 ## What dockup declares
 
 ```jsonc
-{ "id": "sidecar",
+{
+  "id": "sidecar",
   "context": "gecko-engine",
   "dockerfile": "gecko-engine/image/Dockerfile",
 
   "prepare": ["w7s gecko make sidecar-package"],
-  "labels":  { "speculum.gecko.modifications": "$(w7s gecko fingerprint)" } }
+  "labels": { "speculum.gecko.modifications": "$(w7s gecko fingerprint)" },
+}
 ```
 
 The package already sits in `dist/<target>/` inside the build context, so the Dockerfile's
