@@ -12,6 +12,8 @@
 
 ARG PRISTINE_SOURCE=tarball
 ARG FIREFOX_VERSION=153.2.0esr
+ARG FIREFOX_REMOTE=https://github.com/mozilla-firefox/firefox.git
+ARG FIREFOX_TAG=FIREFOX_153_2_0esr_RELEASE
 ARG FIREFOX_COMMIT=feec67e62a5148b41fd017ccbbc463e8a6f9e83d
 ARG PRISTINE_SHA256=
 ARG W7S_VERSION=0.1.0
@@ -19,6 +21,8 @@ ARG W7S_VERSION=0.1.0
 FROM ubuntu:24.04 AS base
 
 ARG FIREFOX_VERSION
+ARG FIREFOX_REMOTE
+ARG FIREFOX_TAG
 ARG FIREFOX_COMMIT
 ARG PRISTINE_SHA256
 ARG W7S_VERSION
@@ -27,6 +31,8 @@ LABEL org.opencontainers.image.title="w7s-toolchain" \
       org.opencontainers.image.description="Pristine Gecko tree + toolchain for @rodrigopjax/w7s" \
       org.opencontainers.image.vendor="rpjax" \
       w7s.firefox.version="${FIREFOX_VERSION}" \
+      w7s.firefox.remote="${FIREFOX_REMOTE}" \
+      w7s.firefox.tag="${FIREFOX_TAG}" \
       w7s.firefox.commit="${FIREFOX_COMMIT}" \
       w7s.pristine.sha256="${PRISTINE_SHA256}" \
       w7s.version="${W7S_VERSION}"
@@ -64,9 +70,13 @@ RUN mkdir -p /gecko-pristine \
  && test -f /gecko-pristine/mach
 
 FROM base AS pristine-clone
+ARG FIREFOX_REMOTE
+ARG FIREFOX_TAG
 ARG FIREFOX_COMMIT
-RUN git clone --filter=blob:none https://github.com/mozilla-firefox/firefox.git /gecko-pristine \
+RUN git clone --filter=blob:none "${FIREFOX_REMOTE}" /gecko-pristine \
+ && git -C /gecko-pristine fetch --tags \
  && git -C /gecko-pristine checkout "${FIREFOX_COMMIT}" \
+ && test "$(git -C /gecko-pristine rev-parse HEAD)" = "${FIREFOX_COMMIT}" \
  && test -f /gecko-pristine/mach
 
 ARG PRISTINE_SOURCE=tarball

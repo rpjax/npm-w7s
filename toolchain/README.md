@@ -34,8 +34,14 @@ For a future ESR without a local checkout:
 
 ```bash
 docker build --build-arg PRISTINE_SOURCE=clone \
+  --build-arg FIREFOX_REMOTE=https://github.com/mozilla-firefox/firefox.git \
+  --build-arg FIREFOX_TAG=FIREFOX_153_2_0esr_RELEASE \
+  --build-arg FIREFOX_COMMIT=feec67e62a5148b41fd017ccbbc463e8a6f9e83d \
   -t ghcr.io/rpjax/w7s-toolchain:<version> .
 ```
+
+Pin arguments (from `docs/01-concepts.md`): remote, tag, and commit are build-args of this
+image and appear nowhere else.
 
 ## Verify
 
