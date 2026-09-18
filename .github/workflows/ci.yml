@@ -102,13 +102,25 @@ jobs:
           echo "labeled $TAG_REF"
 
           # The load-bearing check: these exact bytes are in the registry.
-          docker manifest inspect "$DIGEST_REF" > /dev/null
+          if ! docker manifest inspect "$DIGEST_REF" > /dev/null; then
+            echo "::error::The pinned toolchain image is not readable from this job."
+            echo "Most likely the GHCR package is private or not connected to this"
+            echo "repository. It must be public: everyone who installs this package"
+            echo "has to be able to pull it."
+            exit 1
+          fi
 
-          # The tag is only a label, but at release time it must still point at
-          # the bytes we pinned. A mismatch means the tag was overwritten, or a
-          # constant was mistyped.
+          # The tag is only a label, but at release time it must still point at the
+          # bytes we pinned. A mismatch means the tag was overwritten, or a constant
+          # was mistyped.
+          #
+          # This reads the digest the TAG RESOLVES TO — the OCI index. Not
+          # `docker manifest inspect -v`, which returns one entry per platform (an
+          # array once attestations exist) and whose Descriptor digests are the
+          # per-platform manifests, never the index.
           PINNED_DIGEST="${DIGEST_REF#*@}"
-          TAG_DIGEST="$(docker manifest inspect -v "$TAG_REF" | jq -r '.Descriptor.digest')"
+          TAG_DIGEST="$(docker buildx imagetools inspect "$TAG_REF" --format '{{.Manifest.Digest}}')"
+          test -n "$TAG_DIGEST"
           echo "pinned  $PINNED_DIGEST"
           echo "tag     $TAG_DIGEST"
           test "$PINNED_DIGEST" = "$TAG_DIGEST"
