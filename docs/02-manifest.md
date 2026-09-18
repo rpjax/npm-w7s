@@ -246,6 +246,12 @@ Declared once and consumed three ways: `run` exports it into the process, the pr
 receives it at build time, and dockup stops repeating it. Before this, the same four
 variables lived in both the Dockerfile and `dockup.json`.
 
+## `tests`
+
+Declared suites, their commands, where each one runs and what each one requires. The shape
+is specified in [05-runner.md](05-runner.md) rather than here, because it is the one section
+whose content the tool deliberately does not understand.
+
 ## `consumers`
 
 ```jsonc

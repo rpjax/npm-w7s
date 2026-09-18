@@ -21,26 +21,64 @@ manifest**, never a concept in the tool.
   "suites": [
     { "id":     "<free id>",
       "run":    "<any command>",         // opaque to the tool
-      "needs":  ["obj"],                 // optional — a stage that must be fresh
-      "tags":   ["<free>"],              // optional — cross-cutting selection
-      "report": ".w7s/logs/${id}.json"   // optional — machine-readable summary
+      "in":     "host",                  // where it executes — see below
+      "needs":  ["obj"],                 // stage freshness
+      "requires": { "platform": ["linux"], "tools": ["dotnet"], "engine": true },
+      "tags":   ["<free>"],              // cross-cutting selection
+      "report": "${stateDir}/logs/${id}.json"
     }
   ]
 }
 ```
 
-Two boundary choices, and why each:
+### `in` — where the command runs
 
-**`needs` uses the tool's own vocabulary** (`src`, `obj`, `dist`). That is not an opinion
-about testing: it is the one thing the tool knows better than the suite, and it is what
-separates **failed** from **could not run**. Without it, a suite that requires a built
-binary produces a tool error dressed up as a red test.
+The tool runs on Windows (L1) but most of what it orchestrates is Linux. A suite therefore
+has to say where its command belongs; guessing would be an opinion, and a wrong one.
 
-**`report` is the only information channel besides the exit code.** If a suite writes a
-summary at that path, the tool merges it into `--json`. Otherwise it captures stdout and
-stderr into a log, shows the tail, and prints the path. **The tool never interprets a
-suite's output** — formatting why something failed belongs to whoever wrote the test, and
-the day the suite changes format the tool must not care.
+| `in` | executes | working directory |
+|---|---|---|
+| `host` (default) | the machine w7s runs on | the manifest's directory |
+| `workshop` | inside the builder container, with `src`, `obj` and `cache` mounted | the source volume root |
+| `target` | inside the execution target started by `run` | that target's payload root |
+
+This is not a convenience. A C++ suite that links against Gecko headers cannot run on the
+Windows host at all; a `dotnet test` of the managed host runs there perfectly well and
+paying for a container would be silly; a suite that drives the running sidecar needs to be
+where the sidecar is. Three genuinely different places, declared per suite.
+
+For `in: workshop` and `in: target`, `report` is written under `stateDir`, which the tool
+bind-mounts into the container. That is how a report crosses back without the suite knowing
+it is in a container.
+
+### `requires` — what the environment must provide
+
+`needs` is about *freshness* of a stage. `requires` is about *capability* of the machine,
+and it is what lets the tool say **"could not run here"** instead of producing a confusing
+failure.
+
+| key | checked how |
+|---|---|
+| `platform` | a list of `linux` / `windows` / `darwin`; the current platform must be in it |
+| `tools` | each name must resolve on `PATH` in the place named by `in` |
+| `engine` | the container engine answers and the pinned image is present |
+| `memory` | the engine's VM limit is at least this much |
+
+A suite whose `requires` are not met is reported **NOT SELECTED**, with the reason. It is
+not "skipped" — nothing was passed over silently — and it is not "failed" either, because
+nothing ran. This is the same distinction `needs` makes, applied to the machine instead of
+to the pipeline.
+
+### Partial runs are never reported as green
+
+This is the rule that makes the previous section safe:
+
+> If any suite was not selected, the summary is **PARTIAL**, never `ok`, and it names what
+> did not run and why.
+
+A run where a third of the suites never executed must not look like a run where everything
+passed. `--strict` turns NOT SELECTED into a failure, which is what CI uses so that a
+misconfigured runner fails loudly instead of reporting a green partial.
 
 ## Output
 
@@ -70,7 +108,8 @@ $ w7s gecko test
 | `--list` | what exists, prerequisites, and what is blocked and why |
 | `--bail` / `--no-bail` | override the manifest policy |
 | `--json` | one object per suite, plus `report` when present |
-| `--strict` | a blocked suite counts as a failure — the CI mode |
+| `--in <where>` | only suites declared to run there |
+| `--strict` | BLOCKED or NOT SELECTED counts as a failure — the CI mode |
 
 ## What it deliberately does not offer
 

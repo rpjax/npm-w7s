@@ -5,11 +5,14 @@ running *Speculum's* tests. They are different things and the words are easy to 
 
 ## The constraint that shapes everything
 
-> The entire suite runs with **no container engine, no Gecko clone, no network**, on Linux
-> and on Windows.
+> The **portable tiers** — unit, integration and e2e — run with no container engine, no
+> Gecko clone and no network, on Linux and on Windows.
 
 A test suite that needs Docker and 5.7 GB of Firefox is a suite nobody runs, which means
 regressions land. So the constraint is not a convenience — it decides the architecture.
+
+There is a fourth tier that genuinely cannot be portable, and it is declared rather than
+wished away — see [The engine tier](#the-engine-tier) below.
 
 Two consequences:
 
@@ -85,6 +88,40 @@ against that repository with the real `git`. No mocks. It builds in well under a
 | `status.test.ts` | the rendered table and the `--json` equivalent for every combination of fresh/behind/cold |
 | `provider.test.ts` | the four commands dockup calls, including exit codes and the `artifact --json` fields |
 
+## The engine tier
+
+Three things about w7s cannot be proven against a fake: that the real `docker run` argv is
+accepted by a real engine, that a named volume actually mounts where we think it does, and
+that a report written inside the container is readable outside it. A fake that agrees with
+our assumptions proves only that we are self-consistent.
+
+So there is `test/engine/`, run by `npm run test:engine`, and it is **declared, not
+attempted**:
+
+- it asserts its preconditions first — engine reachable, pinned image present — and if they
+  are absent it exits 4 with the reason, the same code the CLI uses for an unavailable
+  engine;
+- it never runs `mach` and never clones Gecko. It uses `gecko-tiny` as the volume content,
+  so a full pass is seconds, not hours;
+- it is **not** part of `npm test` — that script names the three portable tiers explicitly
+  rather than globbing `test/**`, so adding a tier can never silently join the default run —
+  and it is not in the four CI jobs, because a hosted runner has no engine we want to
+  depend on.
+
+The same principle the tool applies to Speculum's suites applies to its own: a tier that
+cannot run here is *not selected*, with a reason — never silently skipped, and never counted
+as passing.
+
+### CI states which tiers ran
+
+Every run prints the tiers it executed and the tiers it did not, and a summary that omitted
+a tier is labelled **PARTIAL**. The four hosted jobs are honest about being partial; the
+engine tier runs on the machine that has a workshop, before a release.
+
+That leaves exactly one gap stated out loud: real `mach`, a real clone, a real container
+build. Those are covered by Speculum's own ladder through `w7s gecko test`, on a machine
+that has a workshop. Two levels with an honest boundary beats one level that pretends.
+
 ## Every law has a test
 
 If a law can be broken without a test going red, the law is decoration.
@@ -131,11 +168,12 @@ precisely the bugs a Linux-only suite does not see.
 `publish` runs only on a `v*.*.*` tag and only after all four are green. See
 [09-release.md](09-release.md).
 
+`test:engine` is not one of them, by design. It is part of the release checklist in
+[09-release.md](09-release.md), run on a machine with a workshop.
+
 ## What is not covered, and is said so on purpose
 
-Real `mach`, a real Gecko clone, and a real container build are **not** exercised by this
-suite. They cannot be, in a runner with no Docker and a few minutes.
-
-They are covered instead by the Speculum repository's own ladder, invoked through
-`w7s gecko test` on a machine that has a workshop. Two levels of testing, with an honest
-boundary between them, beats one level that pretends.
+Nothing beyond what the engine tier section already names: real `mach`, a real Gecko clone,
+and a real container build. Everything else in this tool is either pure logic, real
+filesystem work in a temp directory, or a real git repository — and all three are tested as
+such.

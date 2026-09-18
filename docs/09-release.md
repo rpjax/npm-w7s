@@ -34,6 +34,7 @@ CHANGELOG entry is a release nobody can adopt safely.
 
 ```bash
 npm run lint && npm test          # same gates CI will run
+npm run test:engine               # the tier CI cannot run — needs a workshop
 # move [Unreleased] to [x.y.z] - YYYY-MM-DD in CHANGELOG.md
 npm version <major|minor|patch>   # bumps package.json and creates the commit + tag
 git push --follow-tags
