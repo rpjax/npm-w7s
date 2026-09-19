@@ -62,14 +62,10 @@ export async function runStatus(
     })),
   ];
 
-  const nextBehind = currency.find((c) => c.status !== "current");
-  const nextSteps = nextBehind
-    ? [`w7s gecko make ${nextBehind.name === "gecko-source" ? "gecko-source" : "sidecar-package"}`]
-    : toolchainOk
-      ? []
-      : ["w7s gecko toolchain --pull"];
-
-  // Prefer the furthest artifact in the chain that is not current
+  // Prefer the first artifact in the chain that is not current. The toolchain
+  // image is built lazily with gecko-binary / `w7s gecko toolchain`, so it only
+  // becomes the next step when every artifact is current and the image is still
+  // missing.
   let nextCommand = "w7s gecko make sidecar-package";
   for (const name of PRODUCTION_ORDER) {
     const c = currency.find((x) => x.name === name);
@@ -78,9 +74,10 @@ export async function runStatus(
       break;
     }
   }
-  if (!toolchainOk) {
+  if (!toolchainOk && currency.every((c) => c.status === "current")) {
     nextCommand = "w7s gecko toolchain";
   }
+  const nextSteps = [nextCommand];
 
   const upgrades: { geckoPath: string; diff: string }[] = [];
   if (opts.upgrades) {

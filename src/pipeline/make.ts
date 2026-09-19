@@ -102,6 +102,7 @@ async function produceGeckoSource(
   const { manifest, manifestDir, paths, ports, dryRun } = options;
   ensureWorkspaceDirs(paths);
 
+  let pristineChecked = false;
   if (!dryRun) {
     await materialize(
       {
@@ -111,12 +112,15 @@ async function produceGeckoSource(
       paths.geckoSource,
       manifest.gecko,
     );
+    pristineChecked = true;
+  } else if (await ports.git.ok(["rev-parse", "--git-dir"], paths.geckoSource)) {
+    pristineChecked = true;
   } else if (!existsSync(paths.geckoSource)) {
     mkdirSync(paths.geckoSource, { recursive: true });
   }
 
   const files = expandModifications(manifest.modifications, manifestDir);
-  if (!dryRun) {
+  if (pristineChecked) {
     await prefetchPristine(ports, paths.geckoSource, manifest.gecko.commit, files);
   }
 
@@ -126,6 +130,7 @@ async function produceGeckoSource(
     readPristine: pristineReader,
     existsInPristine: pristineExists,
     dryRun,
+    skipReplacesCheck: !pristineChecked,
   });
 
   if (!dryRun) {
