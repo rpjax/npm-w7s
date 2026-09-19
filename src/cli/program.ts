@@ -1,4 +1,4 @@
-import { Command, Option } from "commander";
+import { Command } from "commander";
 import { basename } from "node:path";
 import { W7sError } from "../errors/index.js";
 import { Logger } from "../logger/index.js";
@@ -21,8 +21,6 @@ import { runStatus } from "./commands/status.js";
 import { runPaths } from "./commands/paths.js";
 import { runFingerprint } from "./commands/fingerprint.js";
 import { runValidate } from "./commands/validate.js";
-import { runStart, runStop } from "./commands/start-stop.js";
-import { runTest } from "./commands/test.js";
 import { runShell } from "./commands/shell.js";
 import { runToolchain } from "./commands/toolchain.js";
 import { runCapture } from "./commands/capture.js";
@@ -239,69 +237,9 @@ export function createProgram(deps: AppDeps = {}): Command {
   });
 
   addGlobalOptions(
-    gecko.command("start").description("start the sidecar from gecko-binary"),
-  ).action(async () => {
-    try {
-      printHeader(app.run, "gecko start");
-      await runStart(app.run);
-    } catch (err) {
-      process.exitCode = handleFatal(err, app.run, Boolean(app.global.json));
-    }
-  });
-
-  addGlobalOptions(gecko.command("stop").description("stop what start started")).action(
-    async () => {
-      try {
-        printHeader(app.run, "gecko stop");
-        await runStop(app.run);
-      } catch (err) {
-        process.exitCode = handleFatal(err, app.run, Boolean(app.global.json));
-      }
-    },
-  );
-
-  addGlobalOptions(
-    gecko
-      .command("test")
-      .description("run declared tests")
-      .option("--name <name>", "select by name", (v: string, acc: string[] = []) => {
-        acc.push(v);
-        return acc;
-      })
-      .option("--tag <tag>", "select by tag", (v: string, acc: string[] = []) => {
-        acc.push(v);
-        return acc;
-      })
-      .option("--classification <kind>", "release-gate or diagnostic")
-      .option("--arguments <text>", "appended verbatim to the selected test's command")
-      .option("--list", "list tests without running")
-      .addOption(new Option("--stop-on-failure", "stop at the first failure"))
-      .addOption(new Option("--continue-on-failure", "run every selected test"))
-      .option("--strict", "blocked tests count as failure; exclude diagnostics"),
-  ).action(
-    async (localOpts: {
-      name?: string[];
-      tag?: string[];
-      classification?: string;
-      arguments?: string;
-      list?: boolean;
-      stopOnFailure?: boolean;
-      continueOnFailure?: boolean;
-      strict?: boolean;
-    }) => {
-      try {
-        printHeader(app.run, "gecko test");
-        await runTest(localOpts, app.run);
-      } catch (err) {
-        process.exitCode = handleFatal(err, app.run, Boolean(app.global.json));
-      }
-    },
-  );
-
-  addGlobalOptions(
     gecko
       .command("shell")
-      .description("a shell in a toolchain container")
+      .description("a shell in the toolchain container, for debugging")
       .argument("[command...]", "command to run instead of bash"),
   ).action(async (command: string[]) => {
     try {

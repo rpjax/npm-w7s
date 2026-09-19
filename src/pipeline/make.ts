@@ -6,19 +6,12 @@ import { expandModifications } from "../modifications/expand.js";
 import { applyModifications } from "../modifications/apply.js";
 import { computeFingerprint } from "../modifications/fingerprint.js";
 import { compareAll, assertNoDirty } from "../modifications/compare.js";
-import {
-  stampArtifact,
-  currencyOf,
-  clearArtifactStamp,
-  allCurrency,
-} from "../artifacts/currency.js";
+import { stampArtifact, currencyOf, clearArtifactStamp } from "../artifacts/currency.js";
 import { stepsForMake, assertArtifactName, dependenciesOf } from "../artifacts/graph.js";
 import type { Ports } from "../ports/index.js";
 import { TOOLCHAIN_IMAGE_DIGEST, getVersion } from "../version.js";
 import { ensureWorkspaceDirs, volumeRootFor, type WorkspacePaths } from "../workspace/paths.js";
 import { writeSidecarPackage } from "../package/sidecar.js";
-import { selectTests } from "../tests/select.js";
-import { runTests, assertTestsOk } from "../tests/run.js";
 
 export interface MakeOptions {
   artifact: string;
@@ -166,40 +159,7 @@ async function produceGeckoBinary(options: MakeOptions, fingerprint: string): Pr
 }
 
 async function produceSidecarPackage(options: MakeOptions, fingerprint: string): Promise<void> {
-  const { paths, ports, dryRun, manifestDir, manifest } = options;
-  const imageRef = options.imageRef ?? TOOLCHAIN_IMAGE_DIGEST;
-
-  const currency = allCurrency(
-    manifestDir,
-    {
-      "gecko-source": paths.geckoSource,
-      "gecko-binary": paths.geckoBinary,
-      "sidecar-package": paths.sidecarPackage,
-    },
-    fingerprint,
-  );
-
-  const selected = selectTests(manifest.tests, { classification: "release-gate" }, currency).filter(
-    (t) => t.test.dependsOn.length === 0 && t.status === "selected",
-  );
-
-  if (selected.length > 0 && !dryRun) {
-    const summary = await runTests({
-      selected,
-      manifestDir,
-      engine: ports.engine,
-      imageRef,
-      clock: ports.clock,
-      stopOnFailure: true,
-      strict: true,
-      mounts: [
-        { host: paths.geckoSource, container: "/gecko-source", readOnly: true },
-        { host: paths.geckoBinary, container: "/gecko-binary", readOnly: true },
-        { host: manifestDir, container: "/workspace" },
-      ],
-    });
-    assertTestsOk(summary);
-  }
+  const { paths, ports, dryRun, manifestDir } = options;
 
   await writeSidecarPackage({
     paths,

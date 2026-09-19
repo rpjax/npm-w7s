@@ -1,4 +1,4 @@
-/** Artifact names — the only values accepted by dependsOn and make. */
+/** Artifact names — the only values accepted by make. */
 export const ARTIFACT_NAMES = ["gecko-source", "gecko-binary", "sidecar-package"] as const;
 export type ArtifactName = (typeof ARTIFACT_NAMES)[number];
 
@@ -6,28 +6,7 @@ export function isArtifactName(value: string): value is ArtifactName {
   return (ARTIFACT_NAMES as readonly string[]).includes(value);
 }
 
-/** Runners a release-gate test may name — the toolchain image provides exactly these. */
-export const RELEASE_GATE_RUNNERS = [
-  "bash",
-  "python3",
-  "node",
-  "dotnet",
-  "clang",
-  "g++",
-  "cmake",
-  "jq",
-] as const;
-
-export type ReleaseGateRunner = (typeof RELEASE_GATE_RUNNERS)[number];
-
-export function releaseGateRunnerAllowed(runner: string): boolean {
-  const first = runner.trim().split(/\s+/)[0] ?? "";
-  return (RELEASE_GATE_RUNNERS as readonly string[]).includes(first);
-}
-
 export type ModificationType = "directory" | "files";
-export type TestClassification = "release-gate" | "diagnostic";
-export type TestVerifies = "build-output" | "released-image";
 
 export interface FileMapping {
   localPath: string;
@@ -53,25 +32,41 @@ export interface FilesModification {
 
 export type Modification = DirectoryModification | FilesModification;
 
-export interface TestDeclaration {
-  name: string;
-  description: string;
-  entryPoint: string;
-  runner: string;
-  workingDirectory: string;
-  classification: TestClassification;
-  dependsOn: ArtifactName[];
-  verifies: TestVerifies;
-  arguments?: string[];
-  environment?: Record<string, string>;
-  extraPackages?: string[];
-  networkAccess?: boolean;
-  report?: string;
-  timeoutSeconds?: number;
-  tags?: string[];
+/**
+ * The Gecko tree this build uses.
+ *
+ * `commit` is the guarantee. A commit SHA is a content hash, so verifying
+ * `git rev-parse HEAD` against it is a proof, not a hope — which is why the tree
+ * no longer needs to be baked into a published image.
+ *
+ * `version` is a label and is NEVER parsed. It names the directory under
+ * `.w7s/gecko/` and `out/`, nothing more. w7s never derives it from the commit,
+ * and never derives the commit from it.
+ */
+export interface GeckoDeclaration {
+  version: string;
+  repository: string;
+  commit: string;
+}
+
+/**
+ * The contents of the build image. Every field is stated by the operator.
+ *
+ * w7s assembles; it does not choose. The tool owns the rules of building Gecko —
+ * layer order, cache mounts, that `mach bootstrap` runs and with which flags. It
+ * never adds a package nobody named and never picks a version nobody stated.
+ */
+export interface ToolchainDeclaration {
+  target: string;
+  baseImage: string;
+  aptPackages: string[];
+  rustVersion: string;
+  sccacheVersion: string;
+  extraCommands?: string[];
 }
 
 export interface W7sManifest {
+  gecko: GeckoDeclaration;
+  toolchain: ToolchainDeclaration;
   modifications: Modification[];
-  tests: TestDeclaration[];
 }

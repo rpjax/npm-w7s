@@ -2,21 +2,63 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://raw.githubusercontent.com/rpjax/npm-w7s/main/schema/w7s.schema.json",
   "title": "w7s manifest",
-  "description": "Two keys only: modifications and tests. Unknown keys are errors.",
+  "description": "Three keys only: gecko, toolchain and modifications. Unknown keys are errors.",
   "type": "object",
-  "required": ["modifications", "tests"],
+  "required": ["gecko", "toolchain", "modifications"],
   "additionalProperties": false,
   "properties": {
+    "gecko": { "$ref": "#/$defs/gecko" },
+    "toolchain": { "$ref": "#/$defs/toolchain" },
     "modifications": {
       "type": "array",
       "items": { "$ref": "#/$defs/modification" }
-    },
-    "tests": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/test" }
     }
   },
   "$defs": {
+    "gecko": {
+      "type": "object",
+      "required": ["version", "repository", "commit"],
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "description": "Directory name under .w7s/gecko and out. A label; never parsed."
+        },
+        "repository": { "type": "string", "minLength": 1 },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "Full 40-hex commit. Verified with git rev-parse after materializing."
+        }
+      }
+    },
+    "toolchain": {
+      "type": "object",
+      "required": ["target", "baseImage", "aptPackages", "rustVersion", "sccacheVersion"],
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "description": "Compilation target name. Used in out/<version>/<target>."
+        },
+        "baseImage": { "type": "string", "minLength": 1 },
+        "aptPackages": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "rustVersion": { "type": "string", "minLength": 1 },
+        "sccacheVersion": { "type": "string", "minLength": 1 },
+        "extraCommands": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Additional RUN lines, appended last, in order, verbatim."
+        }
+      }
+    },
     "fileMapping": {
       "type": "object",
       "required": ["localPath", "geckoPath"],
@@ -47,10 +89,7 @@
         "name": { "type": "string", "minLength": 1 },
         "description": { "type": "string", "minLength": 1 },
         "type": { "const": "files" },
-        "files": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/fileMapping" }
-        },
+        "files": { "type": "array", "items": { "$ref": "#/$defs/fileMapping" } },
         "replacesGeckoSource": { "type": "boolean" }
       }
     },
@@ -59,55 +98,6 @@
         { "$ref": "#/$defs/directoryModification" },
         { "$ref": "#/$defs/filesModification" }
       ]
-    },
-    "test": {
-      "type": "object",
-      "required": [
-        "name",
-        "description",
-        "entryPoint",
-        "runner",
-        "workingDirectory",
-        "classification",
-        "dependsOn",
-        "verifies"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "name": { "type": "string", "minLength": 1 },
-        "description": { "type": "string", "minLength": 1 },
-        "entryPoint": { "type": "string", "minLength": 1 },
-        "runner": { "type": "string", "minLength": 1 },
-        "workingDirectory": { "type": "string", "minLength": 1 },
-        "classification": { "type": "string", "enum": ["release-gate", "diagnostic"] },
-        "dependsOn": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "enum": ["gecko-source", "gecko-binary", "sidecar-package"]
-          }
-        },
-        "verifies": { "type": "string", "enum": ["build-output", "released-image"] },
-        "arguments": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "environment": {
-          "type": "object",
-          "additionalProperties": { "type": "string" }
-        },
-        "extraPackages": {
-          "type": "array",
-          "items": { "type": "string", "minLength": 1 }
-        },
-        "networkAccess": { "type": "boolean" },
-        "report": { "type": "string", "minLength": 1 },
-        "timeoutSeconds": { "type": "number", "minimum": 0 },
-        "tags": {
-          "type": "array",
-          "items": { "type": "string", "minLength": 1 }
-        }
-      }
     }
   }
 }

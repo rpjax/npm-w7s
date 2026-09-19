@@ -4,12 +4,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { fail } from "../errors/index.js";
-import {
-  isArtifactName,
-  releaseGateRunnerAllowed,
-  type TestDeclaration,
-  type W7sManifest,
-} from "./types.js";
+import { type W7sManifest } from "./types.js";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const schemaPath = join(packageRoot, "schema", "w7s.schema.json");
@@ -43,43 +38,7 @@ export function validateSchema(manifest: unknown): void {
   }
 }
 
-function validateTestSemantics(test: TestDeclaration, index: number): void {
-  const label = `tests[${index}] ("${test.name}")`;
-
-  for (const dep of test.dependsOn) {
-    if (!isArtifactName(dep)) {
-      fail("Manifest", `${label}.dependsOn contains unknown artifact "${dep}".`, {
-        hint: "dependsOn accepts only gecko-source, gecko-binary, sidecar-package.",
-      });
-    }
-  }
-
-  if (test.classification === "release-gate") {
-    if (test.extraPackages !== undefined && test.extraPackages.length > 0) {
-      fail("Manifest", `${label}: release-gate tests may not declare extraPackages.`, {
-        hint: 'Move the test to classification "diagnostic", or remove extraPackages.',
-      });
-    }
-    if (test.networkAccess === true) {
-      fail("Manifest", `${label}: release-gate tests may not declare networkAccess.`, {
-        hint: 'Move the test to classification "diagnostic", or remove networkAccess.',
-      });
-    }
-    if (!releaseGateRunnerAllowed(test.runner)) {
-      fail(
-        "Manifest",
-        `${label}: release-gate runner "${test.runner}" is not provided by the toolchain image.`,
-        {
-          hint: "Allowed runners: bash, python3, node, dotnet, clang, g++, cmake, jq.",
-        },
-      );
-    }
-  }
-}
-
 /** Schema + semantic validation. Throws W7sError phase Manifest on failure. */
 export function validateManifest(manifest: unknown): asserts manifest is W7sManifest {
   validateSchema(manifest);
-  const typed = manifest as W7sManifest;
-  typed.tests.forEach((test, index) => validateTestSemantics(test, index));
 }

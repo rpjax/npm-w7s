@@ -66,7 +66,6 @@ export async function runValidate(run: RunContext): Promise<Record<string, unkno
     {
       manifestPath,
       modifications: files.length,
-      tests: raw.tests.length,
       pristineChecked,
       unchecked,
     },
@@ -76,7 +75,7 @@ export async function runValidate(run: RunContext): Promise<Record<string, unkno
   if (run.options.json) {
     run.ports.output.writeStdout(`${JSON.stringify(payload)}\n`);
   } else {
-    run.log.ok("validate", `manifest ok · ${files.length} files · ${raw.tests.length} tests`);
+    run.log.ok("validate", `manifest ok · ${files.length} files`);
     if (!pristineChecked) {
       run.log.warn(
         "validate",
