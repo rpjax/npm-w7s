@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { validateManifest } from "../../src/manifest/schema.js";
 import { W7sError } from "../../src/errors/index.js";
+import { defaultGecko, defaultToolchain } from "../helpers/fakes.js";
 
 function validManifest(): Record<string, unknown> {
   return {
+    gecko: defaultGecko(),
+    toolchain: defaultToolchain(),
     modifications: [
       {
         name: "runtime",
@@ -12,18 +15,6 @@ function validManifest(): Record<string, unknown> {
         type: "files",
         files: [{ localPath: "./a.cpp", geckoPath: "a.cpp" }],
         replacesGeckoSource: false,
-      },
-    ],
-    tests: [
-      {
-        name: "smoke",
-        description: "smoke",
-        entryPoint: "./t.sh",
-        runner: "bash",
-        workingDirectory: "/gecko-source",
-        classification: "diagnostic",
-        dependsOn: ["gecko-source"],
-        verifies: "build-output",
       },
     ],
   };
@@ -42,10 +33,40 @@ describe("manifest schema", () => {
   });
 
   describe("required root fields", () => {
-    for (const field of ["modifications", "tests"] as const) {
+    for (const field of ["gecko", "toolchain", "modifications"] as const) {
       it(`rejects missing ${field}`, () => {
         const m = validManifest();
         delete m[field];
+        assertManifestRejects(m);
+      });
+    }
+  });
+
+  describe("required gecko fields", () => {
+    for (const field of ["version", "repository", "commit"] as const) {
+      it(`rejects missing gecko.${field}`, () => {
+        const m = validManifest();
+        const gecko = { ...(m.gecko as Record<string, unknown>) };
+        delete gecko[field];
+        m.gecko = gecko;
+        assertManifestRejects(m);
+      });
+    }
+  });
+
+  describe("required toolchain fields", () => {
+    for (const field of [
+      "target",
+      "baseImage",
+      "aptPackages",
+      "rustVersion",
+      "sccacheVersion",
+    ] as const) {
+      it(`rejects missing toolchain.${field}`, () => {
+        const m = validManifest();
+        const toolchain = { ...(m.toolchain as Record<string, unknown>) };
+        delete toolchain[field];
+        m.toolchain = toolchain;
         assertManifestRejects(m);
       });
     }
@@ -118,33 +139,27 @@ describe("manifest schema", () => {
     }
   });
 
-  describe("required test fields", () => {
-    const required = [
-      "name",
-      "description",
-      "entryPoint",
-      "runner",
-      "workingDirectory",
-      "classification",
-      "dependsOn",
-      "verifies",
-    ] as const;
-
-    for (const field of required) {
-      it(`rejects missing tests[].${field}`, () => {
-        const m = validManifest();
-        const test = { ...(m.tests as Record<string, unknown>[])[0]! };
-        delete test[field];
-        m.tests = [test];
-        assertManifestRejects(m);
-      });
-    }
-  });
-
   describe("wrong types", () => {
     const cases: { label: string; mutate: (m: Record<string, unknown>) => void }[] = [
       { label: "modifications not array", mutate: (m) => (m.modifications = {}) },
-      { label: "tests not array", mutate: (m) => (m.tests = "nope") },
+      {
+        label: "gecko.version not string",
+        mutate: (m) => {
+          (m.gecko as Record<string, unknown>).version = 1;
+        },
+      },
+      {
+        label: "gecko.commit not 40 hex",
+        mutate: (m) => {
+          (m.gecko as Record<string, unknown>).commit = "not-a-commit";
+        },
+      },
+      {
+        label: "toolchain.aptPackages not array",
+        mutate: (m) => {
+          (m.toolchain as Record<string, unknown>).aptPackages = "git";
+        },
+      },
       {
         label: "modification.name not string",
         mutate: (m) => {
@@ -206,96 +221,6 @@ describe("manifest schema", () => {
           ];
         },
       },
-      {
-        label: "test.name not string",
-        mutate: (m) => {
-          (m.tests as Record<string, unknown>[])[0]!.name = 9;
-        },
-      },
-      {
-        label: "test.description not string",
-        mutate: (m) => {
-          (m.tests as Record<string, unknown>[])[0]!.description = [];
-        },
-      },
-      {
-        label: "test.entryPoint not string",
-        mutate: (m) => {
-          (m.tests as Record<string, unknown>[])[0]!.entryPoint = {};
-        },
-      },
-      {
-        label: "test.runner not string",
-        mutate: (m) => {
-          (m.tests as Record<string, unknown>[])[0]!.runner = 0;
-        },
-      },
-      {
-        label: "test.workingDirectory not string",
-        mutate: (m) => {
-          (m.tests as Record<string, unknown>[])[0]!.workingDirectory = false;
-        },
-      },
-      {
-        label: "test.classification invalid",
-        mutate: (m) => {
-          (m.tests as Record<string, unknown>[])[0]!.classification = "nightly";
-        },
-      },
-      {
-        label: "test.dependsOn not array",
-        mutate: (m) => {
-          (m.tests as Record<string, unknown>[])[0]!.dependsOn = "gecko-source";
-        },
-      },
-      {
-        label: "test.dependsOn item invalid",
-        mutate: (m) => {
-          (m.tests as Record<string, unknown>[])[0]!.dependsOn = ["not-an-artifact"];
-        },
-      },
-      {
-        label: "test.verifies invalid",
-        mutate: (m) => {
-          (m.tests as Record<string, unknown>[])[0]!.verifies = "unit";
-        },
-      },
-      {
-        label: "test.networkAccess not boolean",
-        mutate: (m) => {
-          (m.tests as Record<string, unknown>[])[0]!.networkAccess = "true";
-        },
-      },
-      {
-        label: "test.timeoutSeconds not number",
-        mutate: (m) => {
-          (m.tests as Record<string, unknown>[])[0]!.timeoutSeconds = "30";
-        },
-      },
-      {
-        label: "test.tags not array",
-        mutate: (m) => {
-          (m.tests as Record<string, unknown>[])[0]!.tags = "smoke";
-        },
-      },
-      {
-        label: "test.extraPackages not array",
-        mutate: (m) => {
-          (m.tests as Record<string, unknown>[])[0]!.extraPackages = "curl";
-        },
-      },
-      {
-        label: "test.arguments not array",
-        mutate: (m) => {
-          (m.tests as Record<string, unknown>[])[0]!.arguments = "--flag";
-        },
-      },
-      {
-        label: "test.environment not object",
-        mutate: (m) => {
-          (m.tests as Record<string, unknown>[])[0]!.environment = ["A=1"];
-        },
-      },
     ];
 
     for (const { label, mutate } of cases) {
@@ -309,7 +234,7 @@ describe("manifest schema", () => {
 
   it("rejects an unknown root key", () => {
     const m = validManifest();
-    m.engine = "gecko";
+    m.tests = [];
     assertManifestRejects(m);
   });
 
@@ -319,9 +244,9 @@ describe("manifest schema", () => {
     assertManifestRejects(m);
   });
 
-  it("rejects an unknown test key", () => {
+  it("rejects an unknown gecko key", () => {
     const m = validManifest();
-    (m.tests as Record<string, unknown>[])[0]!.flaky = true;
+    (m.gecko as Record<string, unknown>).tag = "FIREFOX";
     assertManifestRejects(m);
   });
 });
