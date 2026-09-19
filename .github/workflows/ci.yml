@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   lint:
@@ -62,69 +61,3 @@ jobs:
       - run: npm run build
       - run: npm run test:unit
       - run: npm run test:integration
-
-  publish:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: [lint, test-unit, test-e2e, test-windows]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-      packages: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          registry-url: https://registry.npmjs.org
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-
-      - name: the git tag must name the version being published
-        run: |
-          set -euo pipefail
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          PKG_VERSION="$(node -p "require('./package.json').version")"
-          echo "git tag      $TAG_VERSION"
-          echo "package.json $PKG_VERSION"
-          test "$TAG_VERSION" = "$PKG_VERSION"
-
-      - name: log in to the container registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: the toolchain image this release runs must exist
-        run: |
-          set -euo pipefail
-          DIGEST_REF="$(node --input-type=module -e "import { TOOLCHAIN_IMAGE_DIGEST } from './dist/version.js'; process.stdout.write(TOOLCHAIN_IMAGE_DIGEST);")"
-          TAG_REF="$(node --input-type=module -e "import { TOOLCHAIN_IMAGE_TAG } from './dist/version.js'; process.stdout.write(TOOLCHAIN_IMAGE_TAG);")"
-          echo "runs    $DIGEST_REF"
-          echo "labeled $TAG_REF"
-
-          # The load-bearing check: these exact bytes are in the registry.
-          if ! docker manifest inspect "$DIGEST_REF" > /dev/null; then
-            echo "::error::The pinned toolchain image is not readable from this job."
-            echo "Most likely the GHCR package is private or not connected to this"
-            echo "repository. It must be public: everyone who installs this package"
-            echo "has to be able to pull it."
-            exit 1
-          fi
-
-          # The tag is only a label, but at release time it must still point at the
-          # bytes we pinned. A mismatch means the tag was overwritten, or a constant
-          # was mistyped.
-          #
-          # This reads the digest the TAG RESOLVES TO — the OCI index. Not
-          # `docker manifest inspect -v`, which returns one entry per platform (an
-          # array once attestations exist) and whose Descriptor digests are the
-          # per-platform manifests, never the index.
-          PINNED_DIGEST="${DIGEST_REF#*@}"
-          TAG_DIGEST="$(docker buildx imagetools inspect "$TAG_REF" --format '{{.Manifest.Digest}}')"
-          test -n "$TAG_DIGEST"
-          echo "pinned  $PINNED_DIGEST"
-          echo "tag     $TAG_DIGEST"
-          test "$PINNED_DIGEST" = "$TAG_DIGEST"
-
-      - run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

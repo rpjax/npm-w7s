@@ -12,7 +12,8 @@ import {
 import { createRunContext, type RunContext } from "./run-context.js";
 import { createSystemPorts, type Ports } from "../ports/index.js";
 import { DockerEngine } from "../engine/docker.js";
-import { getVersion, TOOLCHAIN_IMAGE_TAG } from "../version.js";
+import { SystemGit } from "../engine/git.js";
+import { getVersion } from "../version.js";
 import { printErrorPanel, failurePayload } from "../ux/error-panel.js";
 import { printSessionHeader } from "../ux/session.js";
 import { nextStepsForPhase } from "../ux/next-steps.js";
@@ -47,7 +48,7 @@ function createLogger(global: GlobalOptions, ports: Ports): Logger {
 }
 
 function createAppRunContext(deps: AppDeps = {}): AppRunContext {
-  const ports = deps.ports ?? createSystemPorts(new DockerEngine());
+  const ports = deps.ports ?? createSystemPorts(new DockerEngine(), new SystemGit());
   const global: CommanderGlobalOpts = {};
   const options = globalFromCommander(global);
   const log = createLogger(options, ports);
@@ -137,11 +138,7 @@ export function createProgram(deps: AppDeps = {}): Command {
     new Command()
       .name("w7s")
       .description("Websete Speculum toolkit — apply, compile, package and test Speculum Gecko")
-      .version(
-        `${getVersion()} (toolchain ${TOOLCHAIN_IMAGE_TAG})`,
-        "-V, --version",
-        "print the w7s version and the toolchain image tag it requires",
-      )
+      .version(getVersion(), "-V, --version", "print the w7s version")
       .enablePositionalOptions(),
   );
 
@@ -253,8 +250,7 @@ export function createProgram(deps: AppDeps = {}): Command {
   addGlobalOptions(
     gecko
       .command("toolchain")
-      .description("toolchain image maintenance")
-      .option("--pull", "pull the toolchain image this w7s version requires"),
+      .description("render the Dockerfile and build the local toolchain image"),
   ).action(async (localOpts: { pull?: boolean }) => {
     try {
       printHeader(app.run, "gecko toolchain");
@@ -300,7 +296,7 @@ export function createProgram(deps: AppDeps = {}): Command {
 
 export async function runCli(argv: string[], deps: AppDeps = {}): Promise<void> {
   const program = createProgram(deps);
-  const appPorts = deps.ports ?? createSystemPorts(new DockerEngine());
+  const appPorts = deps.ports ?? createSystemPorts(new DockerEngine(), new SystemGit());
   try {
     await program.parseAsync(argv, { from: "user" });
   } catch (err) {

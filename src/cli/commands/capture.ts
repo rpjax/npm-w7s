@@ -3,7 +3,6 @@ import { loadValidatedManifest } from "../context.js";
 import { captureWorkingTreeEdit } from "../../modifications/capture.js";
 import { expandModifications } from "../../modifications/expand.js";
 import { compareAll } from "../../modifications/compare.js";
-import { TOOLCHAIN_IMAGE_DIGEST } from "../../version.js";
 import { fail } from "../../errors/index.js";
 import { successPayload } from "../../ux/error-panel.js";
 import { prefetchPristine, pristineExists, pristineReader } from "../../pipeline/make.js";
@@ -24,9 +23,8 @@ export async function runCapture(
   }
 
   const ctx = loadValidatedManifest(run.options, run.ports.host.cwd());
-  const imageRef = TOOLCHAIN_IMAGE_DIGEST;
   const files = expandModifications(ctx.manifest.modifications, ctx.manifestDir);
-  await prefetchPristine(run.ports, imageRef, files);
+  await prefetchPristine(run.ports, ctx.paths.geckoSource, ctx.manifest.gecko.commit, files);
 
   const captured: string[] = [];
 

@@ -4,7 +4,9 @@ import { expandModifications } from "../../modifications/expand.js";
 import { computeFingerprint } from "../../modifications/fingerprint.js";
 import { allCurrency } from "../../artifacts/currency.js";
 import { PRODUCTION_ORDER } from "../../artifacts/graph.js";
-import { getVersion, TOOLCHAIN_IMAGE_DIGEST } from "../../version.js";
+import { getVersion } from "../../version.js";
+import { readPristine } from "../../gecko/pristine.js";
+import { renderDockerfile, toolchainImageTag } from "../../toolchain/dockerfile.js";
 import { successPayload } from "../../ux/error-panel.js";
 import { volumeRootFor } from "../../workspace/paths.js";
 
@@ -15,16 +17,18 @@ export async function runStatus(
   const ctx = loadValidatedManifest(run.options, run.ports.host.cwd());
   const files = expandModifications(ctx.manifest.modifications, ctx.manifestDir);
   const fingerprint = computeFingerprint(getVersion(), files);
-  const imageRef = TOOLCHAIN_IMAGE_DIGEST;
 
+  // The toolchain tag is derived from the manifest, so "is it built" is a local
+  // lookup, not a registry query.
+  const toolchainTag = toolchainImageTag(renderDockerfile(ctx.manifest.toolchain));
   let toolchainOk = false;
   let digest = "absent";
   try {
     if (await run.ports.engine.available()) {
-      const img = await run.ports.engine.inspectImage(imageRef);
+      const img = await run.ports.engine.inspectImage(toolchainTag);
       if (img) {
         toolchainOk = true;
-        digest = img.digest;
+        digest = img.id;
       }
     }
   } catch {
@@ -45,8 +49,8 @@ export async function runStatus(
     {
       name: "toolchain",
       status: toolchainOk ? "ok" : "missing",
-      detail: imageRef,
-      note: toolchainOk ? "digest verified" : "pull required",
+      detail: toolchainTag,
+      note: toolchainOk ? "built" : "not built — w7s gecko toolchain",
       digest,
     },
     ...currency.map((c) => ({
@@ -75,13 +79,18 @@ export async function runStatus(
     }
   }
   if (!toolchainOk) {
-    nextCommand = "w7s gecko toolchain --pull";
+    nextCommand = "w7s gecko toolchain";
   }
 
   const upgrades: { geckoPath: string; diff: string }[] = [];
   if (opts.upgrades) {
     for (const file of files.filter((f) => f.replacesGeckoSource)) {
-      const pristine = await run.ports.engine.readPristine(imageRef, file.geckoPath);
+      const pristine = await readPristine(
+        run.ports.git,
+        ctx.paths.geckoSource,
+        ctx.manifest.gecko.commit,
+        file.geckoPath,
+      );
       if (pristine === null) {
         continue;
       }

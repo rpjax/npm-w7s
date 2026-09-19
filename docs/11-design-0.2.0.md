@@ -133,9 +133,11 @@ Unchanged from `0.1.0`. Whole-file replacement, declared by directory or by file
 `replacesGeckoSource` verified in both directions per file, writes gated on content so a file
 whose bytes are already correct is never rewritten.
 
-The pristine tree used for that comparison is now `.w7s/gecko/<version>/` **as it was at the
-verified commit** — w7s records the clean tree's file hashes at materialization time, so
-three-state comparison works exactly as before without a read-only mount.
+The pristine bytes for that comparison come from `git show <commit>:<path>` inside the
+materialized tree. Not a snapshot taken at materialization time, and not whatever is on disk:
+the commit is verified against the manifest, so the committed content cannot drift with the
+working tree, needs nothing cached beside it, and is available for any path at any moment.
+That is what replaced the read-only `/gecko-pristine` mount.
 
 ## The toolchain image
 

@@ -40,6 +40,6 @@ export function loadValidatedManifest(
     manifestPath,
     manifestDir,
     manifest: raw,
-    paths: resolveWorkspace(manifestDir),
+    paths: resolveWorkspace(manifestDir, raw),
   };
 }

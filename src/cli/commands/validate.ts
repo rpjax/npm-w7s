@@ -7,9 +7,10 @@ import { validateManifest } from "../../manifest/schema.js";
 import { expandModifications } from "../../modifications/expand.js";
 import { verifyReplacesDeclarations } from "../../modifications/compare.js";
 import { dirname } from "node:path";
-import { TOOLCHAIN_IMAGE_DIGEST } from "../../version.js";
+import { existsPristine } from "../../gecko/pristine.js";
 import { successPayload } from "../../ux/error-panel.js";
 import { fail } from "../../errors/index.js";
+import { resolveWorkspace } from "../../workspace/paths.js";
 
 export async function runValidate(run: RunContext): Promise<Record<string, unknown>> {
   const cwd = run.ports.host.cwd();
@@ -19,17 +20,16 @@ export async function runValidate(run: RunContext): Promise<Record<string, unkno
 
   const manifestDir = dirname(manifestPath);
   const files = expandModifications(raw.modifications, manifestDir);
-  const imageRef = TOOLCHAIN_IMAGE_DIGEST;
+  const paths = resolveWorkspace(manifestDir, raw);
 
   let pristineChecked = false;
   let unchecked: string[] = [];
 
-  const engineOk = await run.ports.engine.available();
-  const image = engineOk ? await run.ports.engine.inspectImage(imageRef) : null;
+  const treeReady = await run.ports.git.ok(["rev-parse", "--git-dir"], paths.geckoSource);
 
-  if (engineOk && image) {
-    const exists = async (geckoPath: string) =>
-      run.ports.engine.existsPristine(imageRef, geckoPath);
+  if (treeReady) {
+    const exists = (geckoPath: string) =>
+      existsPristine(run.ports.git, paths.geckoSource, raw.gecko.commit, geckoPath);
     // verifyReplacesDeclarations is sync — prefetch
     const existsSet = new Set<string>();
     for (const f of files) {
@@ -47,14 +47,14 @@ export async function runValidate(run: RunContext): Promise<Record<string, unkno
   const gitignorePath = join(manifestDir, ".gitignore");
   if (existsSync(gitignorePath)) {
     const gi = readFileSync(gitignorePath, "utf8");
-    const hasDist = /(^|[\n/])dist\/?(\n|$)/m.test(gi) || gi.includes("dist/");
+    const hasOut = /(^|[\n/])out\/?(\n|$)/m.test(gi) || gi.includes("out/");
     const hasW7s = gi.includes(".w7s");
-    if (!hasDist || !hasW7s) {
+    if (!hasOut || !hasW7s) {
       fail(
         "Manifest",
-        "validate fails if dist/ and .w7s/ are not ignored by the consumer's repository.",
+        "validate fails if out/ and .w7s/ are not ignored by the consumer's repository.",
         {
-          hint: "Add dist/ and .w7s/ to .gitignore",
+          hint: "Add out/ and .w7s/ to .gitignore",
         },
       );
     }
@@ -69,7 +69,7 @@ export async function runValidate(run: RunContext): Promise<Record<string, unkno
       pristineChecked,
       unchecked,
     },
-    pristineChecked ? ["w7s gecko make gecko-source"] : ["w7s gecko toolchain --pull"],
+    pristineChecked ? ["w7s gecko make gecko-source"] : ["w7s gecko make gecko-source"],
   );
 
   if (run.options.json) {
@@ -79,7 +79,7 @@ export async function runValidate(run: RunContext): Promise<Record<string, unkno
     if (!pristineChecked) {
       run.log.warn(
         "validate",
-        `pristine comparison unchecked (${unchecked.length} paths) — toolchain unavailable`,
+        `pristine comparison unchecked (${unchecked.length} paths) — tree not materialized yet`,
       );
     }
   }

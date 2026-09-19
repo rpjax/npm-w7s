@@ -1,0 +1,54 @@
+{
+  "gecko": {
+    "version": "153.2.0",
+    "repository": "https://github.com/mozilla-firefox/firefox.git",
+    "commit": "feec67e62a5148b41fd017ccbbc463e8a6f9e83d"
+  },
+  "toolchain": {
+    "target": "linux-x64",
+    "baseImage": "ubuntu:24.04",
+    "aptPackages": [
+      "build-essential",
+      "ca-certificates",
+      "clang",
+      "cmake",
+      "curl",
+      "git",
+      "jq",
+      "libasound2-dev",
+      "libdbus-glib-1-dev",
+      "libgtk-3-dev",
+      "libpulse-dev",
+      "libx11-xcb-dev",
+      "llvm",
+      "m4",
+      "nasm",
+      "pkg-config",
+      "python3",
+      "python3-pip",
+      "unzip",
+      "zip"
+    ],
+    "rustVersion": "1.90.0",
+    "sccacheVersion": "0.17.0",
+    "extraCommands": []
+  },
+  "modifications": [
+    {
+      "name": "projection runtime",
+      "description": "our C++ compiled inside Gecko",
+      "type": "directory",
+      "localPath": "./modifications/runtime",
+      "geckoPath": ".",
+      "replacesGeckoSource": false
+    },
+    {
+      "name": "runtime install points",
+      "description": "upstream files we replace to hook the runtime in",
+      "type": "directory",
+      "localPath": "./modifications/install",
+      "geckoPath": ".",
+      "replacesGeckoSource": true
+    }
+  ]
+}

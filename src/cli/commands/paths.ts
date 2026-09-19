@@ -6,7 +6,7 @@ import type { ArtifactName } from "../../manifest/types.js";
 import { artifactPathFor, containerPathFor, toPosixPath } from "../../workspace/paths.js";
 import { expandModifications } from "../../modifications/expand.js";
 import { computeFingerprint } from "../../modifications/fingerprint.js";
-import { getVersion, TOOLCHAIN_TARGET } from "../../version.js";
+import { getVersion } from "../../version.js";
 import { successPayload } from "../../ux/error-panel.js";
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
@@ -52,7 +52,7 @@ export async function runPaths(
       sha256,
       fingerprint,
       w7sVersion: getVersion(),
-      target: TOOLCHAIN_TARGET,
+      target: ctx.paths.target,
     };
 
     const payload = successPayload(run.command, run.startedAt, result, [], { fingerprint });
@@ -67,7 +67,7 @@ export async function runPaths(
           sha256,
           fingerprint,
           w7sVersion: getVersion(),
-          target: TOOLCHAIN_TARGET,
+          target: ctx.paths.target,
           elapsedSeconds: payload.elapsedSeconds,
           result,
           nextSteps: [],
@@ -77,7 +77,7 @@ export async function runPaths(
       run.ports.output.writeStdout(`  ${name}\n`);
       run.ports.output.writeStdout(`    host       ${host}\n`);
       run.ports.output.writeStdout(`    container  ${container}\n`);
-      run.ports.output.writeStdout(`    target     ${TOOLCHAIN_TARGET}\n`);
+      run.ports.output.writeStdout(`    target     ${ctx.paths.target}\n`);
     }
     return payload;
   }
@@ -93,7 +93,7 @@ export async function runPaths(
   const payload = successPayload(
     run.command,
     run.startedAt,
-    { paths: all, target: TOOLCHAIN_TARGET },
+    { paths: all, target: ctx.paths.target },
     [],
     {
       fingerprint,
@@ -103,7 +103,7 @@ export async function runPaths(
   if (run.options.json) {
     run.ports.output.writeStdout(`${JSON.stringify(payload)}\n`);
   } else {
-    run.ports.output.writeStdout(`  target  ${TOOLCHAIN_TARGET}\n\n`);
+    run.ports.output.writeStdout(`  target  ${ctx.paths.target}\n\n`);
     for (const p of all) {
       run.ports.output.writeStdout(`  ${p.artifact}\n`);
       run.ports.output.writeStdout(`    host       ${p.host}\n`);

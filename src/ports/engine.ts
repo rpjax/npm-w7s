@@ -4,38 +4,34 @@ export interface EngineRunResult {
   stderr: string;
 }
 
+export interface ImageBuildRequest {
+  dockerfilePath: string;
+  contextDir: string;
+  tag: string;
+}
+
 /**
  * Port wrapping the container engine CLI.
- * Production code never shells out to docker/podman except through this port.
- * A fake that receives a `build` invocation fails the test (L5).
+ *
+ * NOTE, because this inverts a 0.1.0 rule: building an image used to be
+ * forbidden here — the image was published and only ever pulled. In 0.2.0 there
+ * is no published image, so `build` is the primary operation. What replaces the
+ * old prohibition is narrower and still enforced by test: only `src/toolchain/`
+ * may call `build`, and it may only build the Dockerfile w7s rendered itself.
  */
 export interface ContainerEngine {
   /** Whether the engine binary is available and responsive. */
   available(): Promise<boolean>;
 
-  /**
-   * Invoke the engine CLI with the given argv (e.g. ["run", "--rm", ...]).
-   * Must never be called with a build subcommand by production code.
-   */
+  /** Invoke the engine CLI with the given argv (e.g. ["run", "--rm", ...]). */
   run(argv: string[]): Promise<EngineRunResult>;
+
+  /** Build the rendered toolchain Dockerfile under a content-addressed tag. */
+  build(request: ImageBuildRequest): Promise<void>;
+
+  /** Whether an image with this exact tag exists locally. The cache check. */
+  imageExists(tag: string): Promise<boolean>;
 
   /** Inspect an image; null if missing. */
   inspectImage(ref: string): Promise<{ digest: string; id: string } | null>;
-
-  /** Pull an image by reference. */
-  pull(ref: string): Promise<void>;
-
-  /**
-   * Read a file from /gecko-pristine inside the toolchain image.
-   * Returns null if the path does not exist.
-   */
-  readPristine(imageRef: string, geckoPath: string): Promise<Buffer | null>;
-
-  /** Whether a path exists under /gecko-pristine in the toolchain image. */
-  existsPristine(imageRef: string, geckoPath: string): Promise<boolean>;
-
-  /**
-   * Copy the pristine tree into a host directory (initialize gecko-source).
-   */
-  copyPristineTo(imageRef: string, hostDest: string): Promise<void>;
 }

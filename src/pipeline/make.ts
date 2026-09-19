@@ -9,7 +9,10 @@ import { compareAll, assertNoDirty } from "../modifications/compare.js";
 import { stampArtifact, currencyOf, clearArtifactStamp } from "../artifacts/currency.js";
 import { stepsForMake, assertArtifactName, dependenciesOf } from "../artifacts/graph.js";
 import type { Ports } from "../ports/index.js";
-import { TOOLCHAIN_IMAGE_DIGEST, getVersion } from "../version.js";
+import { getVersion } from "../version.js";
+import { ensureToolchainImage } from "../toolchain/image.js";
+import { materialize } from "../gecko/source.js";
+import { readPristine, existsPristine as pristineInGit } from "../gecko/pristine.js";
 import { ensureWorkspaceDirs, volumeRootFor, type WorkspacePaths } from "../workspace/paths.js";
 import { writeSidecarPackage } from "../package/sidecar.js";
 
@@ -36,33 +39,48 @@ export interface MakeResult {
 const pristineCache = new Map<string, Buffer | null>();
 const pristineExistsCache = new Set<string>();
 
-async function ensureToolchain(ports: Ports, imageRef: string): Promise<void> {
-  const ok = await ports.engine.available();
+/**
+ * Make the toolchain image exist. In 0.1.0 this checked that a published image
+ * had been pulled; now it renders the Dockerfile from the manifest and builds it
+ * locally if an image with that content-addressed tag is not already present.
+ */
+async function ensureToolchain(options: MakeOptions): Promise<string> {
+  const ok = await options.ports.engine.available();
   if (!ok) {
     fail("Toolchain", "Container engine is unavailable.", {
-      hint: "Install Docker or Podman, then w7s gecko toolchain --pull",
+      hint: "Install Docker or Podman, then retry.",
     });
   }
-  const image = await ports.engine.inspectImage(imageRef);
-  if (!image) {
-    fail("Toolchain", `Toolchain image ${imageRef} is not present.`, {
-      hint: "w7s gecko toolchain --pull",
-    });
-  }
+  const outcome = await ensureToolchainImage({
+    toolchain: options.manifest.toolchain,
+    stateDir: options.paths.stateDir,
+    engine: options.ports.engine,
+    now: () => options.ports.clock.now(),
+    dryRun: options.dryRun,
+  });
+  return outcome.tag;
 }
 
+/**
+ * Load the committed bytes of every declared path, straight out of the tree's
+ * object database. `git show <commit>:<path>` cannot drift with the working
+ * tree, which is why nothing has to be cached alongside it or mounted read-only.
+ */
 export async function prefetchPristine(
   ports: Ports,
-  imageRef: string,
+  treeDir: string,
+  commit: string,
   files: ReturnType<typeof expandModifications>,
 ): Promise<void> {
   pristineCache.clear();
   pristineExistsCache.clear();
   for (const file of files) {
-    const exists = await ports.engine.existsPristine(imageRef, file.geckoPath);
-    if (exists) {
+    if (await pristineInGit(ports.git, treeDir, commit, file.geckoPath)) {
       pristineExistsCache.add(file.geckoPath);
-      pristineCache.set(file.geckoPath, await ports.engine.readPristine(imageRef, file.geckoPath));
+      pristineCache.set(
+        file.geckoPath,
+        await readPristine(ports.git, treeDir, commit, file.geckoPath),
+      );
     } else {
       pristineCache.set(file.geckoPath, null);
     }
@@ -82,18 +100,24 @@ async function produceGeckoSource(
   fingerprint: string,
 ): Promise<{ filesWritten: number; filesUnchanged: number }> {
   const { manifest, manifestDir, paths, ports, dryRun } = options;
-  const imageRef = options.imageRef ?? TOOLCHAIN_IMAGE_DIGEST;
   ensureWorkspaceDirs(paths);
 
-  const files = expandModifications(manifest.modifications, manifestDir);
-  await prefetchPristine(ports, imageRef, files);
+  if (!dryRun) {
+    await materialize(
+      {
+        git: (args, cwd) => ports.git.text(args, cwd),
+        exists: (path) => existsSync(path),
+      },
+      paths.geckoSource,
+      manifest.gecko,
+    );
+  } else if (!existsSync(paths.geckoSource)) {
+    mkdirSync(paths.geckoSource, { recursive: true });
+  }
 
-  if (!existsSync(paths.geckoSource)) {
-    if (!dryRun) {
-      await ports.engine.copyPristineTo(imageRef, paths.geckoSource);
-    } else {
-      mkdirSync(paths.geckoSource, { recursive: true });
-    }
+  const files = expandModifications(manifest.modifications, manifestDir);
+  if (!dryRun) {
+    await prefetchPristine(ports, paths.geckoSource, manifest.gecko.commit, files);
   }
 
   const result = applyModifications({
@@ -119,7 +143,7 @@ async function produceGeckoSource(
 
 async function produceGeckoBinary(options: MakeOptions, fingerprint: string): Promise<void> {
   const { paths, ports, dryRun, manifestDir } = options;
-  const imageRef = options.imageRef ?? TOOLCHAIN_IMAGE_DIGEST;
+  const imageRef = options.imageRef ?? (await ensureToolchain(options));
   mkdirSync(paths.geckoBinary, { recursive: true });
 
   if (dryRun) {
@@ -183,13 +207,9 @@ async function produceSidecarPackage(options: MakeOptions, fingerprint: string):
 export async function makeArtifact(options: MakeOptions): Promise<MakeResult> {
   assertArtifactName(options.artifact);
   const artifact = options.artifact as ArtifactName;
-  const imageRef = options.imageRef ?? TOOLCHAIN_IMAGE_DIGEST;
-
-  await ensureToolchain(options.ports, imageRef);
 
   const files = expandModifications(options.manifest.modifications, options.manifestDir);
   const fingerprint = computeFingerprint(getVersion(), files);
-  await prefetchPristine(options.ports, imageRef, files);
 
   if (options.only) {
     for (const dep of dependenciesOf(artifact)) {

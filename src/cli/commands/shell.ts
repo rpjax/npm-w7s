@@ -1,6 +1,6 @@
 import type { RunContext } from "../run-context.js";
 import { loadValidatedManifest } from "../context.js";
-import { TOOLCHAIN_IMAGE_DIGEST } from "../../version.js";
+import { ensureToolchainImage } from "../../toolchain/image.js";
 import { fail } from "../../errors/index.js";
 import { successPayload } from "../../ux/error-panel.js";
 
@@ -9,11 +9,19 @@ export async function runShell(
   run: RunContext,
 ): Promise<Record<string, unknown>> {
   const ctx = loadValidatedManifest(run.options, run.ports.host.cwd());
-  const imageRef = TOOLCHAIN_IMAGE_DIGEST;
+  const imageRef = (
+    await ensureToolchainImage({
+      toolchain: ctx.manifest.toolchain,
+      stateDir: ctx.paths.stateDir,
+      engine: run.ports.engine,
+      now: () => run.ports.clock.now(),
+      dryRun: run.options.dryRun,
+    })
+  ).tag;
 
   if (!(await run.ports.engine.available())) {
     fail("Toolchain", "Container engine is unavailable.", {
-      hint: "w7s gecko toolchain --pull",
+      hint: "w7s gecko toolchain",
     });
   }
 

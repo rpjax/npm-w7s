@@ -9,7 +9,6 @@ import {
   prefetchPristine,
   pristineReader,
 } from "../../pipeline/make.js";
-import { TOOLCHAIN_IMAGE_DIGEST } from "../../version.js";
 import { fail } from "../../errors/index.js";
 import { successPayload } from "../../ux/error-panel.js";
 
@@ -28,13 +27,12 @@ export async function runReset(
   }
 
   const ctx = loadValidatedManifest(run.options, run.ports.host.cwd());
-  const imageRef = TOOLCHAIN_IMAGE_DIGEST;
   const files = expandModifications(ctx.manifest.modifications, ctx.manifestDir);
 
   let dirty: string[] = [];
   if (name === "gecko-source") {
     try {
-      await prefetchPristine(run.ports, imageRef, files);
+      await prefetchPristine(run.ports, ctx.paths.geckoSource, ctx.manifest.gecko.commit, files);
       dirty = listDirtyFiles(ctx.manifest, ctx.manifestDir, ctx.paths.geckoSource, pristineReader);
     } catch {
       dirty = [];
