@@ -47,7 +47,7 @@ describe("provider e2e", () => {
         target: string;
       };
       assert.equal(pathsPayload.ok, true);
-      assert.ok(pathsPayload.path.includes("linux-x64") || pathsPayload.path.includes("dist"));
+      assert.ok(pathsPayload.path.includes("linux-x64") || pathsPayload.path.includes("out"));
       assert.equal(typeof pathsPayload.sizeBytes, "number");
       assert.ok(pathsPayload.sizeBytes > 0);
       assert.match(pathsPayload.sha256, /^[a-f0-9]{64}$/);
@@ -62,12 +62,13 @@ describe("provider e2e", () => {
       assert.equal(fp.exitCode, 0, fp.stdout);
       assert.equal(fp.stdout.trim(), makePayload.fingerprint);
 
-      // L5: never assert by calling engine.run(['build',...]) — that assert.fails the suite.
-      // Assert instead that recorded invocations never included build.
+      // Only src/toolchain/ may call engine.build — recorded builds are fine;
+      // docker CLI build must not arrive via run().
       assert.ok(
-        !ws.ports.engine.invocations.some((argv) => argv[0] === "build" || argv.includes("build")),
-        "FakeEngine must never receive a build invocation",
+        !ws.ports.engine.invocations.some((argv) => argv[0] === "build"),
+        "FakeEngine.run must never receive docker build",
       );
+      assert.ok(ws.ports.engine.builds.length >= 1, "toolchain must call engine.build()");
     } finally {
       ws.cleanup();
     }

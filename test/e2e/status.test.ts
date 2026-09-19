@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createWorkspace, runProgram } from "../helpers/cli.js";
 import { stampArtifact } from "../../src/artifacts/currency.js";
-import { resolveWorkspace } from "../../src/workspace/paths.js";
 
 describe("status e2e", () => {
   it("reports missing artifacts before make, then current after", async () => {
@@ -21,7 +20,7 @@ describe("status e2e", () => {
       const byName = Object.fromEntries(
         payloadBefore.result.artifacts.map((a) => [a.name, a.status]),
       );
-      assert.equal(byName.toolchain, "ok");
+      assert.equal(byName.toolchain, "missing");
       assert.equal(byName["gecko-source"], "missing");
       assert.equal(byName["gecko-binary"], "missing");
       assert.equal(byName["sidecar-package"], "missing");
@@ -55,11 +54,10 @@ describe("status e2e", () => {
     try {
       const make = await runProgram(["gecko", "make", "gecko-source", "--json"], ws.ports);
       assert.equal(make.exitCode, 0, make.stdout);
-      const paths = resolveWorkspace(ws.dir);
       stampArtifact(
         "gecko-source",
         ws.dir,
-        paths.geckoSource,
+        ws.paths.geckoSource,
         "000000000000",
         ws.ports.clock.now().toISOString(),
       );
@@ -98,7 +96,7 @@ describe("status e2e", () => {
       assert.match(current.stdout, /current/);
       assert.match(current.stdout, /next ->/);
 
-      // Toolchain missing combination
+      // Engine unavailable: toolchain reports missing; artifacts stay current.
       ws.ports.engine.availableFlag = false;
       ws.ports.output.reset();
       process.exitCode = undefined;
@@ -108,7 +106,7 @@ describe("status e2e", () => {
       };
       const toolchain = payload.result.artifacts.find((a) => a.name === "toolchain");
       assert.equal(toolchain?.status, "missing");
-      assert.equal(payload.result.next, "w7s gecko toolchain --pull");
+      assert.equal(payload.result.next, "w7s gecko toolchain");
     } finally {
       ws.cleanup();
     }

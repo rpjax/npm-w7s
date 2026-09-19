@@ -4,14 +4,13 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 import { createWorkspace, runProgram, packageVersion } from "../helpers/cli.js";
 import { writeSidecarPackage, assertPackageLayout } from "../../src/package/sidecar.js";
-import { resolveWorkspace } from "../../src/workspace/paths.js";
 import { W7sError } from "../../src/errors/index.js";
 
 describe("package (integration)", () => {
   it("writes only firefox.tar.gz and build.json", async () => {
     const ws = createWorkspace();
     try {
-      const paths = resolveWorkspace(ws.dir);
+      const paths = ws.paths;
       const result = await writeSidecarPackage({
         paths,
         fingerprint: "abc123def456",
@@ -42,7 +41,7 @@ describe("package (integration)", () => {
   it("refuses when a required archive source is missing", async () => {
     const ws = createWorkspace();
     try {
-      const paths = resolveWorkspace(ws.dir);
+      const paths = ws.paths;
       await assert.rejects(
         () =>
           writeSidecarPackage({
@@ -65,15 +64,18 @@ describe("package (integration)", () => {
     try {
       const result = await runProgram(["gecko", "make", "sidecar-package", "--json"], ws.ports);
       assert.equal(result.exitCode, 0, result.stdout + result.stderr);
-      const paths = resolveWorkspace(ws.dir);
-      assertPackageLayout(paths.sidecarPackage);
-      const build = JSON.parse(readFileSync(join(paths.sidecarPackage, "build.json"), "utf8")) as {
+      assertPackageLayout(ws.paths.sidecarPackage);
+      const build = JSON.parse(
+        readFileSync(join(ws.paths.sidecarPackage, "build.json"), "utf8"),
+      ) as {
         fingerprint: string;
         hashes: { "firefox.tar.gz": string };
       };
       assert.ok(build.fingerprint);
       assert.ok(build.hashes["firefox.tar.gz"]);
-      assert.ok(!ws.ports.engine.invocations.some((a) => a[0] === "build" || a.includes("build")));
+      // docker CLI build must not go through run(); toolchain uses engine.build().
+      assert.ok(!ws.ports.engine.invocations.some((a) => a[0] === "build"));
+      assert.ok(ws.ports.engine.builds.length >= 1);
     } finally {
       ws.cleanup();
     }

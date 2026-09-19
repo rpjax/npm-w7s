@@ -16,7 +16,7 @@ describe("capture (integration)", () => {
       const make = await runProgram(["gecko", "make", "gecko-source", "--json"], ws.ports);
       assert.equal(make.exitCode, 0, make.stdout + make.stderr);
 
-      const tree = join(ws.dir, ".w7s", "volumes", "gecko-source");
+      const tree = ws.paths.geckoSource;
       const edited = "// captured Document.cpp\nint x = 42;\n";
       writeFileSync(resolveInTree(tree, "dom/base/Document.cpp"), edited);
 

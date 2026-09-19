@@ -26,7 +26,7 @@ describe("validate (integration)", () => {
   it("fails on schema failures", async () => {
     const ws = createWorkspace();
     try {
-      writeJson(join(ws.dir, "w7s.json"), { modifications: [], tests: [], extra: true });
+      writeJson(join(ws.dir, "w7s.json"), { modifications: [], extra: true });
       const result = await runProgram(["gecko", "validate", "--json"], ws.ports);
       assert.equal(result.exitCode, EXIT.Cli);
       const payload = JSON.parse(result.stdout) as { ok: boolean; phase: string };
@@ -92,6 +92,16 @@ describe("validate (integration)", () => {
       ],
     });
     try {
+      // Materialize the tree so validate can ask git about pristine paths.
+      await ws.ports.git.text(
+        ["clone", "--no-checkout", ws.manifest.gecko.repository, ws.paths.geckoSource],
+        ".",
+      );
+      await ws.ports.git.text(
+        ["checkout", "--detach", ws.manifest.gecko.commit],
+        ws.paths.geckoSource,
+      );
+
       const result = await runProgram(["gecko", "validate", "--json"], ws.ports);
       assert.equal(result.exitCode, EXIT.Declaration);
       const payload = JSON.parse(result.stdout) as { ok: boolean; phase: string };
@@ -102,7 +112,7 @@ describe("validate (integration)", () => {
     }
   });
 
-  it("fails when .gitignore omits dist/ or .w7s/", async () => {
+  it("fails when .gitignore omits out/ or .w7s/", async () => {
     const ws = createWorkspace({ gitignore: false });
     try {
       writeFileSync(join(ws.dir, ".gitignore"), "node_modules/\n");
@@ -111,7 +121,7 @@ describe("validate (integration)", () => {
       const payload = JSON.parse(result.stdout) as { ok: boolean; phase: string; message: string };
       assert.equal(payload.ok, false);
       assert.equal(payload.phase, "Manifest");
-      assert.match(payload.message, /gitignore|ignored/i);
+      assert.match(payload.message, /gitignore|ignored|out\//i);
     } finally {
       ws.cleanup();
     }

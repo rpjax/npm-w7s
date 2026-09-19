@@ -12,7 +12,8 @@ describe("engine preconditions", () => {
     const ws = createWorkspace();
     try {
       ws.ports.engine.availableFlag = false;
-      const result = await runProgram(["gecko", "make", "gecko-source", "--json"], ws.ports);
+      // gecko-binary needs the toolchain image; gecko-source alone does not.
+      const result = await runProgram(["gecko", "make", "gecko-binary", "--json"], ws.ports);
       assert.equal(result.exitCode, EXIT.Toolchain);
       const payload = JSON.parse(result.stdout) as {
         ok: boolean;
@@ -29,11 +30,14 @@ describe("engine preconditions", () => {
     }
   });
 
-  it("exits 4 when the toolchain image is missing", async () => {
+  it("exits 4 when building the toolchain image fails", async () => {
     const ws = createWorkspace();
     try {
-      ws.ports.engine.images.clear();
-      const result = await runProgram(["gecko", "make", "gecko-source", "--json"], ws.ports);
+      ws.ports.engine.buildImpl = async () => {
+        const { fail } = await import("../../src/errors/index.js");
+        fail("Toolchain", "Failed to build the toolchain image.");
+      };
+      const result = await runProgram(["gecko", "make", "gecko-binary", "--json"], ws.ports);
       assert.equal(result.exitCode, EXIT.Toolchain);
       const payload = JSON.parse(result.stdout) as {
         ok: boolean;

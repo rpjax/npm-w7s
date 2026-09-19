@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { existsSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { createWorkspace, runProgram, runW7s, packageVersion } from "../helpers/cli.js";
-import { resolveWorkspace } from "../../src/workspace/paths.js";
-import { getVersion, TOOLCHAIN_IMAGE_TAG } from "../../src/version.js";
+import { defaultGecko, defaultToolchain, writeJson } from "../helpers/fakes.js";
+import { getVersion } from "../../src/version.js";
 
 describe("cli (integration)", () => {
   it("parses global --json before the subcommand", async () => {
@@ -25,21 +25,19 @@ describe("cli (integration)", () => {
       const sub = join(ws.dir, "manifests");
       mkdirSync(sub, { recursive: true });
       const altPath = join(sub, "alt.w7s.json");
-      writeFileSync(
-        altPath,
-        JSON.stringify({
-          modifications: [
-            {
-              name: "only",
-              description: "only",
-              type: "files",
-              files: [{ localPath: "./mods/runtime/speculum-runtime.cpp", geckoPath: "only.cpp" }],
-              replacesGeckoSource: false,
-            },
-          ],
-          tests: [],
-        }),
-      );
+      writeJson(altPath, {
+        gecko: defaultGecko(),
+        toolchain: defaultToolchain(),
+        modifications: [
+          {
+            name: "only",
+            description: "only",
+            type: "files",
+            files: [{ localPath: "./mods/runtime/speculum-runtime.cpp", geckoPath: "only.cpp" }],
+            replacesGeckoSource: false,
+          },
+        ],
+      });
 
       const result = await runProgram(
         ["gecko", "validate", "--manifest", altPath, "--json"],
@@ -70,26 +68,19 @@ describe("cli (integration)", () => {
         ws.ports,
       );
       assert.equal(result.exitCode, 0, result.stdout);
-      const paths = resolveWorkspace(ws.dir);
-      assert.ok(!existsSync(join(paths.stateDir, "state.json")));
+      assert.ok(!existsSync(join(ws.paths.stateDir, "state.json")));
       // dry-run may mkdir gecko-source but must not apply modifications
-      assert.ok(!existsSync(join(paths.geckoSource, "speculum-runtime.cpp")));
-      assert.ok(!existsSync(join(paths.geckoSource, "dom", "base", "Document.cpp")));
+      assert.ok(!existsSync(join(ws.paths.geckoSource, "speculum-runtime.cpp")));
+      assert.ok(!existsSync(join(ws.paths.geckoSource, "dom", "base", "Document.cpp")));
     } finally {
       ws.cleanup();
     }
   });
 
-  it("packageVersion matches getVersion and --version names the toolchain", () => {
+  it("packageVersion matches getVersion and --version prints it", () => {
     assert.equal(packageVersion, getVersion());
-    // Commander writes --version to process.stdout, not FakeOutput — spawn the built CLI.
     const result = runW7s(["--version"]);
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, new RegExp(packageVersion.replace(/\./g, "\\.")));
-    assert.match(result.stdout, /w7s-toolchain/);
-    assert.match(
-      result.stdout,
-      new RegExp(TOOLCHAIN_IMAGE_TAG.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
-    );
   });
 });
