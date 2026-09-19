@@ -4,9 +4,19 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { copyPristineTiny } from "../fixtures/pristine-tiny.js";
-import { createFakePorts, writeJson, type FakeEngine } from "./fakes.js";
+import {
+  createFakePorts,
+  writeJson,
+  defaultGecko,
+  defaultToolchain,
+  type FakeEngine,
+  type FakeGit,
+} from "./fakes.js";
 import { createProgram } from "../../src/cli/program.js";
 import type { Ports } from "../../src/ports/index.js";
+import type { W7sManifest } from "../../src/manifest/types.js";
+import { resolveWorkspace, type WorkspacePaths } from "../../src/workspace/paths.js";
+import { loadManifest } from "../../src/manifest/load.js";
 
 export const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 export const cli = join(repoRoot, "dist/cli/index.js");
@@ -25,14 +35,21 @@ export function runW7s(args: string[], cwd = repoRoot): SpawnSyncReturns<string>
 export interface Workspace {
   dir: string;
   pristine: string;
-  ports: Ports & { engine: FakeEngine; output: { stdout: string; stderr: string; reset(): void } };
+  manifest: W7sManifest;
+  paths: WorkspacePaths;
+  ports: Ports & {
+    engine: FakeEngine;
+    git: FakeGit;
+    output: { stdout: string; stderr: string; reset(): void };
+  };
   cleanup(): void;
 }
 
 export function createWorkspace(
   options: {
     modifications?: unknown[];
-    tests?: unknown[];
+    gecko?: Partial<ReturnType<typeof defaultGecko>>;
+    toolchain?: Partial<ReturnType<typeof defaultToolchain>>;
     gitignore?: boolean;
   } = {},
 ): Workspace {
@@ -71,19 +88,24 @@ export function createWorkspace(
     },
   ];
 
-  const tests = options.tests ?? [];
+  const gecko = { ...defaultGecko(), ...options.gecko };
+  const toolchain = { ...defaultToolchain(), ...options.toolchain };
 
-  writeJson(join(dir, "w7s.json"), { modifications, tests });
+  writeJson(join(dir, "w7s.json"), { gecko, toolchain, modifications });
 
   if (options.gitignore !== false) {
-    writeFileSync(join(dir, ".gitignore"), "dist/\n.w7s/\n");
+    writeFileSync(join(dir, ".gitignore"), "out/\n.w7s/\n");
   }
 
-  const ports = createFakePorts(dir, pristine);
+  const ports = createFakePorts(dir, pristine, gecko.commit);
+  const manifest = loadManifest(join(dir, "w7s.json"));
+  const paths = resolveWorkspace(dir, manifest);
 
   return {
     dir,
     pristine,
+    manifest,
+    paths,
     ports,
     cleanup() {
       rmSync(dir, { recursive: true, force: true });
