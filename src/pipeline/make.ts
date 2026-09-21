@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fail } from "../errors/index.js";
 import type { ArtifactName, W7sManifest } from "../manifest/types.js";
 import { expandModifications } from "../modifications/expand.js";
@@ -12,6 +12,12 @@ import type { Ports } from "../ports/index.js";
 import { getVersion } from "../version.js";
 import { ensureToolchainImage } from "../toolchain/image.js";
 import { materialize } from "../gecko/source.js";
+import {
+  ensureBootstrapped,
+  mozbuildStateDir,
+  MOZBUILD_CONTAINER_PATH,
+} from "../toolchain/bootstrap.js";
+import { renderMozconfig, OBJDIR_CONTAINER_PATH } from "../toolchain/mozconfig.js";
 import { readPristine, existsPristine as pristineInGit } from "../gecko/pristine.js";
 import { ensureWorkspaceDirs, volumeRootFor, type WorkspacePaths } from "../workspace/paths.js";
 import { writeSidecarPackage } from "../package/sidecar.js";
@@ -147,37 +153,85 @@ async function produceGeckoSource(
 }
 
 async function produceGeckoBinary(options: MakeOptions, fingerprint: string): Promise<void> {
-  const { paths, ports, dryRun, manifestDir } = options;
-  const imageRef = options.imageRef ?? (await ensureToolchain(options));
+  const { paths, ports, dryRun, manifestDir, manifest } = options;
   mkdirSync(paths.geckoBinary, { recursive: true });
 
   if (dryRun) {
     return;
   }
 
-  const result = await ports.engine.run([
-    "run",
-    "--rm",
+  const imageRef = options.imageRef ?? (await ensureToolchain(options));
+
+  await ensureBootstrapped({
+    engine: ports.engine,
+    imageRef,
+    stateDir: paths.stateDir,
+    toolchainTag: imageRef,
+    geckoSource: paths.geckoSource,
+    now: () => ports.clock.now(),
+  });
+
+  const mozbuildDir = mozbuildStateDir(paths.stateDir, imageRef);
+  const sccacheDir = join(paths.stateDir, "sccache");
+  mkdirSync(sccacheDir, { recursive: true });
+
+  // The mozconfig lives beside the tree, not inside it: the tree is the verified
+  // commit plus declared modifications, and nothing else may appear in it.
+  const mozconfigPath = join(paths.stateDir, "mozconfig", `${paths.version}.mozconfig`);
+  mkdirSync(dirname(mozconfigPath), { recursive: true });
+  writeFileSync(mozconfigPath, renderMozconfig(manifest.toolchain), "utf8");
+
+  const mounts = [
     "-v",
     `${paths.geckoSource}:/gecko-source`,
     "-v",
-    `${paths.geckoBinary}:/gecko-binary`,
+    `${paths.geckoBinary}:${OBJDIR_CONTAINER_PATH}`,
+    "-v",
+    `${mozbuildDir}:${MOZBUILD_CONTAINER_PATH}`,
+    "-v",
+    `${sccacheDir}:/cache/sccache`,
+    "-v",
+    `${mozconfigPath}:/w7s.mozconfig:ro`,
+    "-e",
+    `MOZBUILD_STATE_PATH=${MOZBUILD_CONTAINER_PATH}`,
+    "-e",
+    "MOZCONFIG=/w7s.mozconfig",
     "-w",
     "/gecko-source",
+  ];
+
+  const build = await ports.engine.run([
+    "run",
+    "--rm",
+    ...mounts,
     imageRef,
     "bash",
     "-lc",
     "./mach build",
   ]);
-  if (result.exitCode !== 0) {
+  if (build.exitCode !== 0) {
     fail("Execution", "Compilation failed.", {
-      detail: (result.stderr || result.stdout).slice(-2000),
+      detail: (build.stderr || build.stdout).slice(-2000),
       hint: "w7s gecko shell",
     });
   }
-  if (!existsSync(join(paths.geckoBinary, "firefox.tar.gz"))) {
-    writeFileSync(join(paths.geckoBinary, "firefox.tar.gz"), "w7s-binary\n");
+
+  const pack = await ports.engine.run([
+    "run",
+    "--rm",
+    ...mounts,
+    imageRef,
+    "bash",
+    "-lc",
+    "./mach package",
+  ]);
+  if (pack.exitCode !== 0) {
+    fail("Execution", "Packaging failed.", {
+      detail: (pack.stderr || pack.stdout).slice(-2000),
+      hint: "w7s gecko shell",
+    });
   }
+
   stampArtifact(
     "gecko-binary",
     manifestDir,
@@ -193,7 +247,6 @@ async function produceSidecarPackage(options: MakeOptions, fingerprint: string):
   await writeSidecarPackage({
     paths,
     fingerprint,
-    firefoxVersion: "pristine",
     timestamp: ports.clock.now().toISOString(),
     dryRun,
   });

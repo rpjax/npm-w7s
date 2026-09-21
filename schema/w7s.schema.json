@@ -56,6 +56,11 @@
           "type": "array",
           "items": { "type": "string", "minLength": 1 },
           "description": "Additional RUN lines, appended last, in order, verbatim."
+        },
+        "mozconfigOptions": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "mozconfig lines, verbatim and in order. MOZ_OBJDIR is written by w7s."
         }
       }
     },

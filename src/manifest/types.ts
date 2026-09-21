@@ -63,6 +63,8 @@ export interface ToolchainDeclaration {
   rustVersion: string;
   sccacheVersion: string;
   extraCommands?: string[];
+  /** ac_add_options / mk_add_options lines, verbatim and in order. MOZ_OBJDIR is w7s's. */
+  mozconfigOptions?: string[];
 }
 
 export interface W7sManifest {

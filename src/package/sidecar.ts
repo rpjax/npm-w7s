@@ -4,6 +4,7 @@ import {
   createReadStream,
   existsSync,
   mkdirSync,
+  readFileSync,
   readdirSync,
   writeFileSync,
   statSync,
@@ -34,22 +35,61 @@ async function sha256File(path: string): Promise<string> {
   });
 }
 
+/** Where `mach package` leaves its archive, relative to the object directory. */
+export const PACKAGE_DIR = "dist";
+
+/**
+ * Find the archive `mach package` produced.
+ *
+ * Nothing is ever fabricated here. 0.1.0 wrote a placeholder file when the real
+ * archive was absent, which meant a build that half-failed still stamped a
+ * finished artifact — a path whose only effect is to lie about success. A
+ * missing archive is a failure, and it says what it found instead.
+ */
+export function findPackagedArchive(objdir: string): string | null {
+  const distDir = join(objdir, PACKAGE_DIR);
+  if (!existsSync(distDir)) {
+    return null;
+  }
+  const candidates = readdirSync(distDir)
+    .filter((name) => /^firefox-.*\.tar\.(gz|bz2|xz)$/.test(name))
+    .sort();
+  const chosen = candidates[0];
+  return chosen ? join(distDir, chosen) : null;
+}
+
+/** The milestone of the tree that was compiled. Read, never guessed. */
+export function readMilestone(geckoSource: string): string {
+  const path = join(geckoSource, "config", "milestone.txt");
+  if (!existsSync(path)) {
+    fail("Execution", `Cannot read the Firefox milestone: ${path} is missing.`, {
+      hint: "The tree is not a Gecko checkout, or it was never materialized.",
+    });
+  }
+  const line = readFileSync(path, "utf8")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !l.startsWith("#"))
+    .pop();
+  if (!line) {
+    fail("Execution", `${path} contains no milestone.`);
+  }
+  return line!;
+}
+
 /**
  * Produce sidecar-package layout:
- *   dist/<target>/firefox.tar.gz
- *   dist/<target>/build.json
+ *   out/<version>/<target>/firefox.tar.gz
+ *   out/<version>/<target>/build.json
  * Nothing else.
  */
 export async function writeSidecarPackage(options: {
   paths: WorkspacePaths;
   fingerprint: string;
-  firefoxVersion: string;
   timestamp: string;
-  /** Path to an existing firefox archive to copy/link, or create a placeholder archive for fakes. */
-  firefoxArchiveSource?: string;
   dryRun?: boolean;
 }): Promise<{ path: string; sizeBytes: number; sha256: string; buildJson: PackageBuildJson }> {
-  const { paths, fingerprint, firefoxVersion, timestamp, dryRun } = options;
+  const { paths, fingerprint, timestamp, dryRun } = options;
   const outDir = paths.sidecarPackage;
   const archivePath = join(outDir, "firefox.tar.gz");
   const buildPath = join(outDir, "build.json");
@@ -62,7 +102,7 @@ export async function writeSidecarPackage(options: {
       buildJson: {
         fingerprint,
         w7sVersion: getVersion(),
-        firefoxVersion,
+        firefoxVersion: "",
         target: paths.target,
         timestamp,
         hashes: { "firefox.tar.gz": "" },
@@ -70,44 +110,30 @@ export async function writeSidecarPackage(options: {
     };
   }
 
-  mkdirSync(outDir, { recursive: true });
-
-  if (options.firefoxArchiveSource) {
-    if (!existsSync(options.firefoxArchiveSource)) {
-      fail("Execution", `Required package file missing: ${options.firefoxArchiveSource}.`, {
-        hint: "w7s gecko make gecko-binary",
-      });
-    }
-    copyFileSync(options.firefoxArchiveSource, archivePath);
-  } else {
-    // In portable tiers the fake engine leaves a marker archive after "package".
-    const marker = join(paths.geckoBinary, "firefox.tar.gz");
-    if (existsSync(marker)) {
-      copyFileSync(marker, archivePath);
-    } else if (!existsSync(archivePath)) {
-      // Minimal placeholder for layout tests when engine faked the package step.
-      writeFileSync(archivePath, Buffer.from("w7s-fake-firefox-archive\n", "utf8"));
-    }
-  }
-
-  if (!existsSync(archivePath)) {
-    fail("Execution", "sidecar-package is missing firefox.tar.gz.", {
+  const produced = findPackagedArchive(paths.geckoBinary);
+  if (!produced) {
+    fail("Execution", "mach package produced no archive.", {
+      detail: existsSync(join(paths.geckoBinary, PACKAGE_DIR))
+        ? readdirSync(join(paths.geckoBinary, PACKAGE_DIR)).join("\n")
+        : `${join(paths.geckoBinary, PACKAGE_DIR)} does not exist`,
       hint: "w7s gecko make gecko-binary",
     });
   }
+
+  mkdirSync(outDir, { recursive: true });
+  copyFileSync(produced!, archivePath);
 
   const sha = await sha256File(archivePath);
   const buildJson: PackageBuildJson = {
     fingerprint,
     w7sVersion: getVersion(),
-    firefoxVersion,
+    firefoxVersion: readMilestone(paths.geckoSource),
     target: paths.target,
     timestamp,
     hashes: { "firefox.tar.gz": sha },
   };
   writeFileSync(buildPath, `${JSON.stringify(buildJson, null, 2)}\n`, "utf8");
 
-  // Refuse unexpected files? package.test asserts every written path — we only write these two.
   return {
     path: outDir,
     sizeBytes: statSync(archivePath).size,

@@ -1,0 +1,246 @@
+
+> @rodrigopjax/w7s@0.1.0 test:unit
+> npm run build && node --import tsx --test --experimental-test-module-mocks test/unit/**/*.test.ts
+
+
+> @rodrigopjax/w7s@0.1.0 build
+> npm run clean && tsc -p tsconfig.json
+
+
+> @rodrigopjax/w7s@0.1.0 clean
+> node --input-type=module -e "import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true });"
+
+ÔûÂ comparison outcomes
+  Ô£ö current == declared -> unchanged (nothing is written) (168.4612ms)
+  Ô£ö current == pristine -> write (102.989ms)
+  Ô£ö otherwise -> dirty (68.2888ms)
+Ô£ö comparison outcomes (341.5089ms)
+ÔûÂ currency
+  Ô£ö reports missing when no repo stamp exists (6.0758ms)
+  Ô£ö reports current when both stamps agree and match expected fingerprint (10.6169ms)
+  Ô£ö reports behind when fingerprint changed but stamps agree (9.3331ms)
+  Ô£ö two-record disagreement for volumes => missing, never current (9.4222ms)
+  Ô£ö sidecar-package currency reads build.json, not a volume stamp (13.3352ms)
+  Ô£ö sidecar-package reports missing when build.json disagrees with repo stamp (11.6153ms)
+Ô£ö currency (62.9527ms)
+ÔûÂ toolchain Dockerfile
+  Ô£ö renders byte-identically for the same declaration (1.158ms)
+  Ô£ö does not depend on the order packages were written in (0.2945ms)
+  Ô£ö changes when anything the operator declared changes (0.5825ms)
+  Ô£ö never names a package the manifest did not (0.2453ms)
+  Ô£ö appends extraCommands verbatim and in order (0.1548ms)
+  Ô£ö tags with the first 16 hex of the Dockerfile sha256 (0.2867ms)
+Ô£ö toolchain Dockerfile (4.0974ms)
+ÔûÂ error phases
+  Ô£ö maps Cli to 2 (2.8603ms)
+  Ô£ö maps Manifest to 2 (0.3546ms)
+  Ô£ö maps WorkingTree to 3 (0.1839ms)
+  Ô£ö maps Declaration to 6 (0.2326ms)
+  Ô£ö maps Toolchain to 4 (0.1464ms)
+  Ô£ö maps NotCurrent to 5 (0.119ms)
+  Ô£ö maps Test to 7 (0.3066ms)
+  Ô£ö maps Execution to 1 (0.2598ms)
+  Ô£ö documents the stable exit code table (0.4123ms)
+Ô£ö error phases (7.1661ms)
+ÔûÂ fingerprint
+  Ô£ö is deterministic across key order (23.5181ms)
+  Ô£ö uses posix geckoPath separators on every platform (11.4654ms)
+  Ô£ö changes when one byte of content changes (29.3461ms)
+Ô£ö fingerprint (65.9465ms)
+C:\RPJ\Coding\Tools\npm\w7s\test\helpers\fakes.ts:7
+import { TOOLCHAIN_IMAGE_DIGEST } from "../../src/version.js";
+         ^
+
+SyntaxError: The requested module '../../src/version.js' does not provide an export named 'TOOLCHAIN_IMAGE_DIGEST'
+    at ModuleJob._instantiate (node:internal/modules/esm/module_job:181:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:264:5)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:580:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:98:5)
+
+Node.js v23.6.1
+Ô£û test\unit\json-contract.test.ts (1090.1553ms)
+  'test failed'
+
+ÔûÂ line endings
+  Ô£ö CRLF input produces LF declared content (1.4376ms)
+  Ô£ö an LF file is left untouched by normalization (0.3384ms)
+  Ô£ö apply writes LF when the declared file was stored with CRLF (14.4663ms)
+Ô£ö line endings (18.594ms)
+ÔûÂ manifest discovery
+  Ô£ö walks up from a nested cwd to find w7s.json (4.1642ms)
+  Ô£ö accepts a single <name>.w7s.json (1.3193ms)
+  Ô£ö --manifest takes precedence over discovery (2.1618ms)
+  Ô£ö rejects w7s.json together with a *.w7s.json candidate (2.274ms)
+  Ô£ö rejects two *.w7s.json candidates in the same directory (1.7619ms)
+  Ô£ö maps discovery failure through resolveManifestPath to Manifest phase (13.58ms)
+Ô£ö manifest discovery (26.4113ms)
+ÔûÂ manifest schema
+  Ô£û accepts a valid manifest (45.3715ms)
+    AssertionError [ERR_ASSERTION]: Got unwanted exception.
+    Actual message: "Manifest failed JSON Schema validation."
+        at TestContext.<anonymous> (C:\RPJ\Coding\Tools\npm\w7s\test\unit\manifest-schema.test.ts:41:12)
+        at Test.runInAsyncScope (node:async_hooks:211:14)
+        at Test.run (node:internal/test_runner/test:931:25)
+        at Test.start (node:internal/test_runner/test:829:17)
+        at node:internal/test_runner/test:1308:71
+        at node:internal/per_context/primordials:483:82
+        at new Promise (<anonymous>)
+        at new SafePromise (node:internal/per_context/primordials:451:29)
+        at node:internal/per_context/primordials:483:9
+        at Array.map (<anonymous>) {
+      generatedMessage: false,
+      code: 'ERR_ASSERTION',
+      actual: W7sError: Manifest failed JSON Schema validation.
+          at fail (C:\RPJ\Coding\Tools\npm\w7s\src\errors\index.ts:51:9)
+          at validateSchema (C:\RPJ\Coding\Tools\npm\w7s\src\manifest\schema.ts:34:5)
+          at validateManifest (C:\RPJ\Coding\Tools\npm\w7s\src\manifest\schema.ts:43:3)
+          at <anonymous> (C:\RPJ\Coding\Tools\npm\w7s\test\unit\manifest-schema.test.ts:41:31)
+          at getActual (node:assert:836:5)
+          at Function.doesNotThrow (node:assert:1002:32)
+          at TestContext.<anonymous> (C:\RPJ\Coding\Tools\npm\w7s\test\unit\manifest-schema.test.ts:41:12)
+          at Test.runInAsyncScope (node:async_hooks:211:14)
+          at Test.run (node:internal/test_runner/test:931:25)
+          at Test.start (node:internal/test_runner/test:829:17),
+      expected: undefined,
+      operator: 'doesNotThrow'
+    }
+
+  ÔûÂ required root fields
+    Ô£ö rejects missing modifications (0.4919ms)
+    Ô£ö rejects missing tests (0.1424ms)
+  Ô£ö required root fields (0.806ms)
+  ÔûÂ required directory modification fields
+    Ô£ö rejects missing modifications[].name (1.1089ms)
+    Ô£ö rejects missing modifications[].description (0.1493ms)
+    Ô£ö rejects missing modifications[].type (0.1511ms)
+    Ô£ö rejects missing modifications[].localPath (0.2733ms)
+    Ô£ö rejects missing modifications[].geckoPath (0.3527ms)
+    Ô£ö rejects missing modifications[].replacesGeckoSource (0.1766ms)
+  Ô£ö required directory modification fields (2.592ms)
+  ÔûÂ required files modification fields
+    Ô£ö rejects missing modifications[].name for files type (0.3394ms)
+    Ô£ö rejects missing modifications[].description for files type (0.1032ms)
+    Ô£ö rejects missing modifications[].type for files type (0.0687ms)
+    Ô£ö rejects missing modifications[].files for files type (0.0797ms)
+    Ô£ö rejects missing modifications[].replacesGeckoSource for files type (0.078ms)
+  Ô£ö required files modification fields (0.7898ms)
+  ÔûÂ required fileMapping fields
+    Ô£ö rejects missing files[].localPath (0.1667ms)
+    Ô£ö rejects missing files[].geckoPath (0.0682ms)
+  Ô£ö required fileMapping fields (0.3695ms)
+  ÔûÂ required test fields
+    Ô£ö rejects missing tests[].name (0.1641ms)
+    Ô£ö rejects missing tests[].description (0.0626ms)
+    Ô£ö rejects missing tests[].entryPoint (0.0624ms)
+    Ô£ö rejects missing tests[].runner (0.0459ms)
+    Ô£ö rejects missing tests[].workingDirectory (0.0514ms)
+    Ô£ö rejects missing tests[].classification (0.0427ms)
+    Ô£ö rejects missing tests[].dependsOn (0.0394ms)
+    Ô£ö rejects missing tests[].verifies (0.0382ms)
+  Ô£ö required test fields (0.6308ms)
+  ÔûÂ wrong types
+    Ô£ö rejects modifications not array (0.2091ms)
+    Ô£ö rejects tests not array (0.0658ms)
+    Ô£ö rejects modification.name not string (0.0744ms)
+    Ô£ö rejects modification.description not string (0.0845ms)
+    Ô£ö rejects modification.type wrong (0.0985ms)
+    Ô£ö rejects replacesGeckoSource not boolean (0.0837ms)
+    Ô£ö rejects files not array (0.0985ms)
+    Ô£ö rejects localPath not string (0.0664ms)
+    Ô£ö rejects geckoPath not string (0.0629ms)
+    Ô£ö rejects directory localPath not string (0.1021ms)
+    Ô£ö rejects test.name not string (0.0661ms)
+    Ô£ö rejects test.description not string (0.0845ms)
+    Ô£ö rejects test.entryPoint not string (0.0603ms)
+    Ô£ö rejects test.runner not string (0.0563ms)
+    Ô£ö rejects test.workingDirectory not string (0.0556ms)
+    Ô£ö rejects test.classification invalid (0.0552ms)
+    Ô£ö rejects test.dependsOn not array (0.054ms)
+    Ô£ö rejects test.dependsOn item invalid (0.0551ms)
+    Ô£ö rejects test.verifies invalid (0.0623ms)
+    Ô£ö rejects test.networkAccess not boolean (0.1128ms)
+    Ô£ö rejects test.timeoutSeconds not number (0.0805ms)
+    Ô£ö rejects test.tags not array (0.0604ms)
+    Ô£ö rejects test.extraPackages not array (0.0854ms)
+    Ô£ö rejects test.arguments not array (0.0719ms)
+    Ô£ö rejects test.environment not object (0.0614ms)
+  Ô£ö wrong types (2.3069ms)
+  Ô£ö rejects an unknown root key (0.074ms)
+  Ô£ö rejects an unknown modification key (0.1011ms)
+  Ô£ö rejects an unknown test key (0.0663ms)
+Ô£û manifest schema (54.127ms)
+ÔûÂ modification directory expansion
+  Ô£ö expands a directory entry into destination geckoPaths (16.4738ms)
+  Ô£ö joins a non-root geckoPath prefix (5.5005ms)
+Ô£ö modification directory expansion (23.61ms)
+ÔûÂ modification files expansion
+  Ô£ö expands an explicit file list (4.7001ms)
+  Ô£ö allows differing local and Gecko layouts (3.1329ms)
+Ô£ö modification files expansion (9.4589ms)
+ÔûÂ next steps
+  Ô£ö Cli yields a non-empty next command (1.7781ms)
+  Ô£ö Manifest yields a non-empty next command (0.2108ms)
+  Ô£ö WorkingTree yields a non-empty next command (0.1249ms)
+  Ô£ö Declaration yields a non-empty next command (0.2432ms)
+  Ô£ö Toolchain yields a non-empty next command (0.1897ms)
+  Ô£ö NotCurrent yields a non-empty next command (0.1204ms)
+  Ô£ö Test yields a non-empty next command (0.2422ms)
+  Ô£ö Execution yields a non-empty next command (0.2202ms)
+Ô£ö next steps (5.1434ms)
+ÔûÂ path conflict
+  Ô£ö rejects two modifications claiming one destination (13.2812ms)
+Ô£ö path conflict (14.8866ms)
+ÔûÂ replacesGeckoSource declaration
+  Ô£ö rejects replacesGeckoSource:true when the path is absent from pristine (65.2295ms)
+  Ô£ö rejects replacesGeckoSource:false when the path exists in pristine (40.5929ms)
+  Ô£ö accepts both directions when they agree with pristine (36.2961ms)
+Ô£ö replacesGeckoSource declaration (144.3465ms)
+ÔûÂ version
+  Ô£ö matches package.json version (1.474ms)
+  Ô£ö names no registry image ÔÇö 0.2.0 publishes none (4.0199ms)
+Ô£ö version (6.8738ms)
+Ôä╣ tests 107
+Ôä╣ suites 20
+Ôä╣ pass 105
+Ôä╣ fail 2
+Ôä╣ cancelled 0
+Ôä╣ skipped 0
+Ôä╣ todo 0
+Ôä╣ duration_ms 1388.8783
+
+Ô£û failing tests:
+
+test at test\unit\json-contract.test.ts:1:1
+Ô£û test\unit\json-contract.test.ts (1090.1553ms)
+  'test failed'
+
+test at test\unit\manifest-schema.test.ts:1:918
+Ô£û accepts a valid manifest (45.3715ms)
+  AssertionError [ERR_ASSERTION]: Got unwanted exception.
+  Actual message: "Manifest failed JSON Schema validation."
+      at TestContext.<anonymous> (C:\RPJ\Coding\Tools\npm\w7s\test\unit\manifest-schema.test.ts:41:12)
+      at Test.runInAsyncScope (node:async_hooks:211:14)
+      at Test.run (node:internal/test_runner/test:931:25)
+      at Test.start (node:internal/test_runner/test:829:17)
+      at node:internal/test_runner/test:1308:71
+      at node:internal/per_context/primordials:483:82
+      at new Promise (<anonymous>)
+      at new SafePromise (node:internal/per_context/primordials:451:29)
+      at node:internal/per_context/primordials:483:9
+      at Array.map (<anonymous>) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: W7sError: Manifest failed JSON Schema validation.
+        at fail (C:\RPJ\Coding\Tools\npm\w7s\src\errors\index.ts:51:9)
+        at validateSchema (C:\RPJ\Coding\Tools\npm\w7s\src\manifest\schema.ts:34:5)
+        at validateManifest (C:\RPJ\Coding\Tools\npm\w7s\src\manifest\schema.ts:43:3)
+        at <anonymous> (C:\RPJ\Coding\Tools\npm\w7s\test\unit\manifest-schema.test.ts:41:31)
+        at getActual (node:assert:836:5)
+        at Function.doesNotThrow (node:assert:1002:32)
+        at TestContext.<anonymous> (C:\RPJ\Coding\Tools\npm\w7s\test\unit\manifest-schema.test.ts:41:12)
+        at Test.runInAsyncScope (node:async_hooks:211:14)
+        at Test.run (node:internal/test_runner/test:931:25)
+        at Test.start (node:internal/test_runner/test:829:17),
+    expected: undefined,
+    operator: 'doesNotThrow'
+  }

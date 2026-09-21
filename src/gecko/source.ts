@@ -47,7 +47,13 @@ export async function materialize(
     return { state: "already-materialized", commit: declared.commit };
   }
 
-  await ports.git(["clone", "--no-checkout", declared.repository, treeDir], ".");
+  // blob:none keeps the full commit graph — needed to check out an exact commit —
+  // while leaving file contents to be fetched on demand. A shallow clone cannot
+  // reach an arbitrary commit; a full clone drags tens of gigabytes of history.
+  await ports.git(
+    ["clone", "--filter=blob:none", "--no-checkout", declared.repository, treeDir],
+    ".",
+  );
   await ports.git(["checkout", "--detach", declared.commit], treeDir);
 
   const check = await verifyCommit(ports, treeDir, declared);

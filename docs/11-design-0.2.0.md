@@ -133,14 +133,14 @@ Whole-file replacement, declared by directory or by file, `replacesGeckoSource` 
 both directions per file, writes gated on content so a file whose bytes are already correct is
 never rewritten.
 
-| field                 | meaning                                                                                         |
-| --------------------- | ----------------------------------------------------------------------------------------------- |
-| `name`                | stable identity of the entry                                                                    |
-| `description`         | why it exists                                                                                   |
-| `type`                | `"directory"` or `"files"`                                                                      |
-| `localPath`           | path in the consumer repository (directory root, or unused for `files` with explicit pairs)     |
-| `geckoPath`           | destination under the materialized tree                                                         |
-| `replacesGeckoSource` | `true` if these files replace committed Gecko files; `false` if they are entirely ours          |
+| field                 | meaning                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------- |
+| `name`                | stable identity of the entry                                                                |
+| `description`         | why it exists                                                                               |
+| `type`                | `"directory"` or `"files"`                                                                  |
+| `localPath`           | path in the consumer repository (directory root, or unused for `files` with explicit pairs) |
+| `geckoPath`           | destination under the materialized tree                                                     |
+| `replacesGeckoSource` | `true` if these files replace committed Gecko files; `false` if they are entirely ours      |
 
 Two entries declaring the same destination path is a conflict, reported before anything is
 written.
@@ -161,11 +161,11 @@ only operation that writes into that tree, and every other production step runs 
 
 For every declared file, three contents are in play:
 
-| name     | where it comes from                                              |
-| -------- | ---------------------------------------------------------------- |
-| pristine | `git show <commit>:<geckoPath>` in the materialized tree         |
-| declared | the file at `localPath` in the repository, normalized to LF      |
-| current  | `<geckoPath>` in the working tree                                |
+| name     | where it comes from                                         |
+| -------- | ----------------------------------------------------------- |
+| pristine | `git show <commit>:<geckoPath>` in the materialized tree    |
+| declared | the file at `localPath` in the repository, normalized to LF |
+| current  | `<geckoPath>` in the working tree                           |
 
 ```
 current == declared   ->  nothing is written
@@ -263,32 +263,32 @@ it, belong to Speculum. There is no registry image to pull.
 
 ### Global options
 
-| option                | effect                                        |
-| --------------------- | --------------------------------------------- |
-| `--manifest <path>`   | use this manifest instead of discovering one  |
-| `--json`              | machine-readable output, on every command     |
-| `-q, --quiet`         | errors and warnings only                      |
-| `-v, --verbose`       | debug logging                                 |
-| `--dry-run`           | write nothing; print what would happen        |
-| `-y, --yes`           | assume yes outside a terminal                 |
-| `--no-color`          | plain output                                  |
-| `--timeout <seconds>` | per-step timeout                              |
-| `-V, --version`       | print the w7s version                         |
+| option                | effect                                       |
+| --------------------- | -------------------------------------------- |
+| `--manifest <path>`   | use this manifest instead of discovering one |
+| `--json`              | machine-readable output, on every command    |
+| `-q, --quiet`         | errors and warnings only                     |
+| `-v, --verbose`       | debug logging                                |
+| `--dry-run`           | write nothing; print what would happen       |
+| `-y, --yes`           | assume yes outside a terminal                |
+| `--no-color`          | plain output                                 |
+| `--timeout <seconds>` | per-step timeout                             |
+| `-V, --version`       | print the w7s version                        |
 
 ### Error phases and exit codes
 
 Failures carry a phase; the exit code is derived from it, never chosen at the throw site.
 
-| phase         | meaning                                                              | exit |
-| ------------- | -------------------------------------------------------------------- | ---- |
-| `Cli`         | bad arguments                                                        | 2    |
-| `Manifest`    | missing, unparseable, or schema-invalid                              | 2    |
-| `WorkingTree` | a file was edited in the working tree                                | 3    |
-| `Declaration` | a modification contradicts pristine, or two entries collide          | 6    |
-| `Toolchain`   | container engine unavailable, image missing, memory insufficient     | 4    |
-| `NotCurrent`  | an artifact exists but is behind (raised only under `--check`)       | 5    |
-| `Test`        | reserved; Speculum owns product tests now                            | 7    |
-| `Execution`   | an invoked command failed, or an unexpected error                    | 1    |
+| phase         | meaning                                                          | exit |
+| ------------- | ---------------------------------------------------------------- | ---- |
+| `Cli`         | bad arguments                                                    | 2    |
+| `Manifest`    | missing, unparseable, or schema-invalid                          | 2    |
+| `WorkingTree` | a file was edited in the working tree                            | 3    |
+| `Declaration` | a modification contradicts pristine, or two entries collide      | 6    |
+| `Toolchain`   | container engine unavailable, image missing, memory insufficient | 4    |
+| `NotCurrent`  | an artifact exists but is behind (raised only under `--check`)   | 5    |
+| `Test`        | reserved; Speculum owns product tests now                        | 7    |
+| `Execution`   | an invoked command failed, or an unexpected error                | 1    |
 
 | code | meaning                                   |
 | ---- | ----------------------------------------- |
@@ -340,11 +340,11 @@ failure.
 
 ## Artifacts
 
-| name               | what it is                                              | produced from                                      |
-| ------------------ | ------------------------------------------------------- | -------------------------------------------------- |
-| `gecko-source`     | the Firefox tree with modifications applied             | clone + commit verify + `modifications`            |
-| `gecko-binary`     | the compiled browser under the object directory         | `gecko-source` + local toolchain image             |
-| `sidecar-package`  | `out/<version>/<target>/` with archive and `build.json` | `gecko-binary`                                     |
+| name              | what it is                                              | produced from                           |
+| ----------------- | ------------------------------------------------------- | --------------------------------------- |
+| `gecko-source`    | the Firefox tree with modifications applied             | clone + commit verify + `modifications` |
+| `gecko-binary`    | the compiled browser under the object directory         | `gecko-source` + local toolchain image  |
+| `sidecar-package` | `out/<version>/<target>/` with archive and `build.json` | `gecko-binary`                          |
 
 Currency is recorded in `.w7s/state.json` and beside each artifact. Disagreement means missing,
 not current.
@@ -384,25 +384,25 @@ binaries are not part of the package — that knowledge belongs to the product D
 
 ## Guarantees
 
-| risk                                       | mechanism                                                                                 |
-| ------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| two commands running at once               | a lock held by a named container; `--timeout` bounds the wait                             |
-| an interrupted write                       | temporary file then rename — never half a file                                            |
-| Windows line endings reaching a Linux tree | declared content normalized to LF; repository carries `text eol=lf`                       |
-| an unknown manifest key                    | validation error, not a warning                                                           |
-| the container engine being absent          | exit 4; never a degraded partial result                                                   |
-| a cold build exhausting memory             | required amount checked against the engine's limit before the build starts                |
-| the toolchain drifting silently            | content-addressed local tag from the Dockerfile hash; `lock.json` records the image id    |
-| the declared commit being forged           | `git rev-parse HEAD` must equal `gecko.commit` after materialize and on later commands    |
-| pristine bytes drifting with the tree      | `git show <commit>:<path>`, not the working tree and not a side cache                     |
-| losing an uncaptured edit                  | `reset` refuses while the working tree differs, and lists what would be lost              |
-| running a command twice                    | every command is idempotent; the second run does nothing and says why                     |
-| an artifact recorded as current but gone   | currency beside the repository and beside the artifact; disagreement means missing        |
-| a modification contradicting the tree      | `replacesGeckoSource` verified in both directions, per file                               |
-| two modifications writing the same path    | conflict before anything is written                                                       |
-| upstream changing a file we replace        | `status --upgrades` names it and shows the diff                                           |
-| generated files reaching version control   | `validate` fails if `out/` and `.w7s/` are not ignored                                    |
-| the product image being built here         | only `src/toolchain/` may call `engine.build`; enforced by unit test                      |
+| risk                                       | mechanism                                                                              |
+| ------------------------------------------ | -------------------------------------------------------------------------------------- |
+| two commands running at once               | a lock held by a named container; `--timeout` bounds the wait                          |
+| an interrupted write                       | temporary file then rename — never half a file                                         |
+| Windows line endings reaching a Linux tree | declared content normalized to LF; repository carries `text eol=lf`                    |
+| an unknown manifest key                    | validation error, not a warning                                                        |
+| the container engine being absent          | exit 4; never a degraded partial result                                                |
+| a cold build exhausting memory             | required amount checked against the engine's limit before the build starts             |
+| the toolchain drifting silently            | content-addressed local tag from the Dockerfile hash; `lock.json` records the image id |
+| the declared commit being forged           | `git rev-parse HEAD` must equal `gecko.commit` after materialize and on later commands |
+| pristine bytes drifting with the tree      | `git show <commit>:<path>`, not the working tree and not a side cache                  |
+| losing an uncaptured edit                  | `reset` refuses while the working tree differs, and lists what would be lost           |
+| running a command twice                    | every command is idempotent; the second run does nothing and says why                  |
+| an artifact recorded as current but gone   | currency beside the repository and beside the artifact; disagreement means missing     |
+| a modification contradicting the tree      | `replacesGeckoSource` verified in both directions, per file                            |
+| two modifications writing the same path    | conflict before anything is written                                                    |
+| upstream changing a file we replace        | `status --upgrades` names it and shows the diff                                        |
+| generated files reaching version control   | `validate` fails if `out/` and `.w7s/` are not ignored                                 |
+| the product image being built here         | only `src/toolchain/` may call `engine.build`; enforced by unit test                   |
 
 ## Distribution
 
@@ -428,13 +428,13 @@ toolchain pin in the consumer's manifest is their change, not a w7s release.
 Whatever the tool cannot fake sits behind a seam. Whatever it can do for real in a temporary
 directory is done for real.
 
-| port              | wraps                           | why                                                                                 |
-| ----------------- | ------------------------------- | ----------------------------------------------------------------------------------- |
-| `ContainerEngine` | the engine CLI                  | absent in CI; tests assert on the argument list that would have been issued         |
-| `GitPort`         | git                             | materialize, commit verify, and pristine `show` without a real clone                |
-| `Clock`           | the system clock                | timestamps and durations must be deterministic                                      |
-| `Host`            | platform, environment variables | Windows and Linux path behaviour is a tested axis                                   |
-| `Output`          | stdout and stderr               | the single-JSON-document guarantee is asserted by capturing                         |
+| port              | wraps                           | why                                                                         |
+| ----------------- | ------------------------------- | --------------------------------------------------------------------------- |
+| `ContainerEngine` | the engine CLI                  | absent in CI; tests assert on the argument list that would have been issued |
+| `GitPort`         | git                             | materialize, commit verify, and pristine `show` without a real clone        |
+| `Clock`           | the system clock                | timestamps and durations must be deterministic                              |
+| `Host`            | platform, environment variables | Windows and Linux path behaviour is a tested axis                           |
+| `Output`          | stdout and stderr               | the single-JSON-document guarantee is asserted by capturing                 |
 
 The filesystem is deliberately **not** a seam. Atomic rename, LF normalization and
 modification-time preservation are exercised against real temporary directories.
@@ -442,12 +442,12 @@ modification-time preservation are exercised against real temporary directories.
 `test/fixtures/pristine-tiny` stands in for a tiny committed tree. Every apply claim is tested
 against it with real files and FakeGit.
 
-| tier            | script              | role                                                         |
-| --------------- | ------------------- | ------------------------------------------------------------ |
-| `test/unit`     | `test:unit`         | schema, apply logic, ports, CLI contracts, build boundary    |
+| tier               | script             | role                                                      |
+| ------------------ | ------------------ | --------------------------------------------------------- |
+| `test/unit`        | `test:unit`        | schema, apply logic, ports, CLI contracts, build boundary |
 | `test/integration` | `test:integration` | real temp dirs, FakeEngine + FakeGit                      |
-| `test/e2e`      | `test:e2e`          | full command chain against fakes                             |
-| `test/engine`   | `test:engine`       | real engine, minimal image; not part of `npm test`           |
+| `test/e2e`         | `test:e2e`         | full command chain against fakes                          |
+| `test/engine`      | `test:engine`      | real engine, minimal image; not part of `npm test`        |
 
 The build-boundary unit test fails if anything outside `src/toolchain/` calls
 `engine.build` / `ContainerEngine.build`.
