@@ -79,6 +79,7 @@ Three keys. Unknown keys are errors.
     "rustVersion": "1.90.0",
     "sccacheVersion": "0.17.0",
     "extraCommands": [],
+    "mozconfigOptions": ["ac_add_options --enable-application=browser"],
   },
 
   "modifications": [
@@ -113,14 +114,15 @@ w7s never derives one from the other.
 
 This describes **the contents of the build image**, and every field is stated by you.
 
-| field            | meaning                                                        |
-| ---------------- | -------------------------------------------------------------- |
-| `target`         | the compilation target name, used in `out/<version>/<target>/` |
-| `baseImage`      | the image the toolchain is built on                            |
-| `aptPackages`    | packages installed before anything else runs                   |
-| `rustVersion`    | pinned exactly                                                 |
-| `sccacheVersion` | pinned exactly                                                 |
-| `extraCommands`  | additional `RUN` lines, appended last, in order, verbatim      |
+| field              | meaning                                                        |
+| ------------------ | -------------------------------------------------------------- |
+| `target`           | the compilation target name, used in `out/<version>/<target>/` |
+| `baseImage`        | the image the toolchain is built on                            |
+| `aptPackages`      | packages installed before anything else runs                   |
+| `rustVersion`      | pinned exactly                                                 |
+| `sccacheVersion`   | pinned exactly                                                 |
+| `extraCommands`    | additional `RUN` lines, appended last, in order, verbatim      |
+| `mozconfigOptions` | mozconfig lines, verbatim and in order. `MOZ_OBJDIR` is w7s's. |
 
 **w7s assembles; it does not choose.** The tool owns the _rules of building Gecko_ — the layer
 order, where the cache mounts live, that `mach bootstrap` runs and with which flags, how the
@@ -196,6 +198,35 @@ It identifies exactly one state of the modified tree and travels into `build.jso
 
 `reset` refuses while the working tree holds an edit that is not in the repository, and lists
 what would be lost.
+
+## Bootstrap, the object directory and the caches
+
+Three things the build needs that are neither the tree nor the image.
+
+**`mach bootstrap` cannot be a Dockerfile layer any more.** It requires a checkout, and the
+tree now lives on the host. So it runs once into `.w7s/mozbuild/<toolchain tag>/`, mounted at
+`MOZBUILD_STATE_PATH` on every later container. It is keyed by the same content-addressed tag
+as the image, for the same reason: bootstrap fetches whatever Mozilla serves on the day it
+runs and has no hash to check against, so it is re-run when the toolchain block changes and
+never because time passed.
+
+**The mozconfig is generated** into `.w7s/mozconfig/` and mounted read-only. `MOZ_OBJDIR` is
+written by w7s and points at the mounted object directory, because where the object directory
+lives is wiring, and pointing it elsewhere would silently break the artifact layout. Every
+other line comes from `toolchain.mozconfigOptions`, verbatim and in order.
+
+It is deliberately **not** written into the tree: the tree holds the verified commit and the
+declared modifications, and nothing else may appear in it.
+
+**sccache persists** in `.w7s/sccache/`, mounted into every build, so killing a container does
+not cost a full rebuild.
+
+**The archive is whatever `mach package` produced.** `make gecko-binary` runs `./mach build`
+then `./mach package`; `make sidecar-package` copies that archive to
+`out/<version>/<target>/firefox.tar.gz` and writes `build.json` beside it, with the milestone
+read from the tree. If no archive is there, that is a failure that reports what it found — it
+is never replaced with a placeholder, because a build that half-failed must not stamp a
+finished artifact.
 
 ## The toolchain image
 
