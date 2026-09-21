@@ -6,8 +6,9 @@ import { fail } from "../errors/index.js";
 export function runProcess(
   command: string,
   argv: string[],
-  options: { cwd?: string } = {},
+  options: { cwd?: string; stream?: boolean } = {},
 ): Promise<EngineRunResult & { stdoutBytes: Buffer }> {
+  const stream = options.stream !== false;
   return new Promise((resolvePromise) => {
     const child = spawn(command, argv, {
       cwd: options.cwd,
@@ -18,9 +19,15 @@ export function runProcess(
     let stderr = "";
     child.stdout?.on("data", (chunk: Buffer) => {
       out.push(chunk);
+      if (stream) {
+        process.stdout.write(chunk);
+      }
     });
     child.stderr?.on("data", (chunk: Buffer) => {
       stderr += chunk.toString("utf8");
+      if (stream) {
+        process.stderr.write(chunk);
+      }
     });
     child.on("error", (err) => {
       resolvePromise({
