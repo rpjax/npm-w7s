@@ -51,11 +51,14 @@ describe("make e2e", () => {
   it("stops at the first failure and never reports incomplete as passing", async () => {
     const ws = createWorkspace();
     try {
-      ws.ports.engine.runImpl = async () => ({
-        exitCode: 1,
-        stdout: "",
-        stderr: "mach build failed",
-      });
+      ws.ports.engine.runImpl = async (argv) => {
+        const script = argv[argv.length - 1] ?? "";
+        if (script.includes("mach build")) {
+          return { exitCode: 1, stdout: "", stderr: "mach build failed" };
+        }
+        // Bootstrap (and anything else) must succeed so the failure is the compile step.
+        return { exitCode: 0, stdout: "", stderr: "" };
+      };
 
       const result = await runProgram(["gecko", "make", "gecko-binary", "--json"], ws.ports);
       assert.notEqual(result.exitCode, 0);

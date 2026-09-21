@@ -17,16 +17,58 @@ import { join } from "node:path";
  * What stays forbidden is reaching docker's build via `run(["build", …])`; only
  * `src/toolchain/` may call the `build` port method (enforced by a unit test).
  */
+/**
+ * Resolve a host path from a docker `-v host:container` argv list.
+ * Returns null when the mount is absent.
+ *
+ * Matches `:<containerPath>` or `:<containerPath>:<mode>` so Windows drive
+ * letters (`C:\…:/gecko-binary`) do not confuse a last-colon split.
+ */
+export function hostMountFor(argv: string[], containerPath: string): string | null {
+  const needle = `:${containerPath}`;
+  for (let i = 0; i < argv.length - 1; i++) {
+    if (argv[i] !== "-v" && argv[i] !== "--volume") {
+      continue;
+    }
+    const spec = argv[i + 1] ?? "";
+    const idx = spec.indexOf(needle);
+    if (idx < 0) {
+      continue;
+    }
+    const after = spec.slice(idx + needle.length);
+    if (after === "" || after.startsWith(":")) {
+      return spec.slice(0, idx);
+    }
+  }
+  return null;
+}
+
 export class FakeEngine implements ContainerEngine {
   readonly invocations: string[][] = [];
   readonly builds: ImageBuildRequest[] = [];
   availableFlag = true;
   images = new Map<string, { digest: string; id: string }>();
-  runImpl: (argv: string[]) => Promise<EngineRunResult> = async () => ({
-    exitCode: 0,
-    stdout: "",
-    stderr: "",
-  });
+  /**
+   * Default: succeed, and when the command is `mach package`, plant a real-shaped
+   * archive under the mounted objdir — the same contract a successful mach leaves.
+   * Tests that need failure replace `runImpl`.
+   */
+  runImpl: (argv: string[]) => Promise<EngineRunResult> = async (argv) => {
+    const script = argv[argv.length - 1] ?? "";
+    if (script.includes("mach package")) {
+      const objdir = hostMountFor(argv, "/gecko-binary");
+      if (objdir) {
+        const dist = join(objdir, "dist");
+        mkdirSync(dist, { recursive: true });
+        writeFileSync(
+          join(dist, "firefox-153.2.0.en-US.linux-x86_64.tar.gz"),
+          "fake-firefox-archive\n",
+          "utf8",
+        );
+      }
+    }
+    return { exitCode: 0, stdout: "", stderr: "" };
+  };
   buildImpl: (request: ImageBuildRequest) => Promise<void> = async (request) => {
     this.images.set(request.tag, {
       digest: `sha256:built-${request.tag}`,

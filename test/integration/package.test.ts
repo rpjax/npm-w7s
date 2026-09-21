@@ -1,20 +1,29 @@
 import assert from "node:assert/strict";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { createWorkspace, runProgram, packageVersion } from "../helpers/cli.js";
 import { writeSidecarPackage, assertPackageLayout } from "../../src/package/sidecar.js";
 import { W7sError } from "../../src/errors/index.js";
+import { copyPristineTiny } from "../fixtures/pristine-tiny.js";
 
 describe("package (integration)", () => {
-  it("writes only firefox.tar.gz and build.json", async () => {
+  it("writes only firefox.tar.gz and build.json from the mach archive", async () => {
     const ws = createWorkspace();
     try {
       const paths = ws.paths;
+      mkdirSync(paths.geckoSource, { recursive: true });
+      copyPristineTiny(paths.geckoSource);
+      mkdirSync(join(paths.geckoBinary, "dist"), { recursive: true });
+      writeFileSync(
+        join(paths.geckoBinary, "dist", "firefox-153.2.0.en-US.linux-x86_64.tar.gz"),
+        "packaged-bytes\n",
+        "utf8",
+      );
+
       const result = await writeSidecarPackage({
         paths,
         fingerprint: "abc123def456",
-        firefoxVersion: "153.2.0",
         timestamp: "2026-09-18T00:00:00.000Z",
       });
       assert.deepEqual(readdirSync(paths.sidecarPackage).sort(), ["build.json", "firefox.tar.gz"]);
@@ -38,18 +47,19 @@ describe("package (integration)", () => {
     }
   });
 
-  it("refuses when a required archive source is missing", async () => {
+  it("refuses when mach package left no archive", async () => {
     const ws = createWorkspace();
     try {
       const paths = ws.paths;
+      mkdirSync(paths.geckoSource, { recursive: true });
+      copyPristineTiny(paths.geckoSource);
+      mkdirSync(paths.geckoBinary, { recursive: true });
       await assert.rejects(
         () =>
           writeSidecarPackage({
             paths,
             fingerprint: "x",
-            firefoxVersion: "153",
             timestamp: "t",
-            firefoxArchiveSource: join(ws.dir, "missing.tar.gz"),
           }),
         (err: unknown) => err instanceof W7sError && err.phase === "Execution",
       );
@@ -70,9 +80,11 @@ describe("package (integration)", () => {
       ) as {
         fingerprint: string;
         hashes: { "firefox.tar.gz": string };
+        firefoxVersion: string;
       };
       assert.ok(build.fingerprint);
       assert.ok(build.hashes["firefox.tar.gz"]);
+      assert.equal(build.firefoxVersion, "153.2.0");
       // docker CLI build must not go through run(); toolchain uses engine.build().
       assert.ok(!ws.ports.engine.invocations.some((a) => a[0] === "build"));
       assert.ok(ws.ports.engine.builds.length >= 1);
