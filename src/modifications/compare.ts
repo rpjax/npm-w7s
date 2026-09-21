@@ -37,7 +37,7 @@ function readOptional(path: string): Buffer | null {
 
 /**
  * Compare one file: current vs declared vs pristine.
- * Outcomes from docs/03-applying.md:
+ * Outcomes from docs/11-design-0.2.0.md:
  *   current == declared  -> unchanged
  *   current == pristine  -> write
  *   otherwise            -> dirty (WorkingTree)
@@ -59,7 +59,7 @@ export function compareFile(
     pristine = readOptional(resolveInTree(pristineRoot, file.geckoPath));
   }
 
-  // Only `declared` is LF-normalized (docs/03-applying.md). current and pristine are compared raw.
+  // Only `declared` is LF-normalized (docs/11-design-0.2.0.md). current and pristine are compared raw.
   if (current !== null && buffersEqual(current, declared)) {
     return { file, outcome: "unchanged", declared, current, pristine };
   }

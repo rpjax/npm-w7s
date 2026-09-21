@@ -33,7 +33,7 @@ export function validateSchema(manifest: unknown): void {
       .join("\n");
     fail("Manifest", "Manifest failed JSON Schema validation.", {
       detail: messages,
-      hint: "See schema/w7s.schema.json or docs/02-manifest.md",
+      hint: "See schema/w7s.schema.json or docs/11-design-0.2.0.md",
     });
   }
 }

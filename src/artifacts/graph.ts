@@ -2,7 +2,7 @@ import type { ArtifactName } from "../manifest/types.js";
 import { ARTIFACT_NAMES } from "../manifest/types.js";
 import { fail } from "../errors/index.js";
 
-/** Fixed production chain from docs/01-concepts.md. */
+/** Fixed production chain from docs/11-design-0.2.0.md. */
 export const ARTIFACT_CHAIN: Record<ArtifactName, ArtifactName[]> = {
   "gecko-source": [],
   "gecko-binary": ["gecko-source"],
