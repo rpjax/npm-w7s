@@ -21,6 +21,7 @@ import { renderMozconfig, OBJDIR_CONTAINER_PATH } from "../toolchain/mozconfig.j
 import { readPristine, existsPristine as pristineInGit } from "../gecko/pristine.js";
 import { ensureWorkspaceDirs, volumeRootFor, type WorkspacePaths } from "../workspace/paths.js";
 import { writeSidecarPackage } from "../package/sidecar.js";
+import { dockerVolumeSpec } from "../engine/mount.js";
 
 export interface MakeOptions {
   artifact: string;
@@ -183,19 +184,21 @@ async function produceGeckoBinary(options: MakeOptions, fingerprint: string): Pr
 
   const mounts = [
     "-v",
-    `${paths.geckoSource}:/gecko-source`,
+    dockerVolumeSpec(paths.geckoSource, "/gecko-source"),
     "-v",
-    `${paths.geckoBinary}:${OBJDIR_CONTAINER_PATH}`,
+    dockerVolumeSpec(paths.geckoBinary, OBJDIR_CONTAINER_PATH),
     "-v",
-    `${mozbuildDir}:${MOZBUILD_CONTAINER_PATH}`,
+    dockerVolumeSpec(mozbuildDir, MOZBUILD_CONTAINER_PATH),
     "-v",
-    `${sccacheDir}:/cache/sccache`,
+    dockerVolumeSpec(sccacheDir, "/cache/sccache"),
     "-v",
-    `${mozconfigPath}:/w7s.mozconfig:ro`,
+    dockerVolumeSpec(mozconfigPath, "/w7s.mozconfig", "ro"),
     "-e",
     `MOZBUILD_STATE_PATH=${MOZBUILD_CONTAINER_PATH}`,
     "-e",
     "MOZCONFIG=/w7s.mozconfig",
+    "-e",
+    "PYTHONUNBUFFERED=1",
     "-w",
     "/gecko-source",
   ];

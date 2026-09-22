@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ContainerEngine } from "../ports/engine.js";
 import { fail } from "../errors/index.js";
+import { dockerVolumeSpec } from "../engine/mount.js";
 
 /**
  * `mach bootstrap` state, cached under the toolchain tag.
@@ -48,11 +49,13 @@ export async function ensureBootstrapped(options: {
     "run",
     "--rm",
     "-v",
-    `${options.geckoSource}:/gecko-source`,
+    dockerVolumeSpec(options.geckoSource, "/gecko-source"),
     "-v",
-    `${dir}:${MOZBUILD_CONTAINER_PATH}`,
+    dockerVolumeSpec(dir, MOZBUILD_CONTAINER_PATH),
     "-e",
     `MOZBUILD_STATE_PATH=${MOZBUILD_CONTAINER_PATH}`,
+    "-e",
+    "PYTHONUNBUFFERED=1",
     "-w",
     "/gecko-source",
     options.imageRef,

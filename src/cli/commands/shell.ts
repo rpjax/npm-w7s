@@ -3,6 +3,7 @@ import { loadValidatedManifest } from "../context.js";
 import { ensureToolchainImage } from "../../toolchain/image.js";
 import { fail } from "../../errors/index.js";
 import { successPayload } from "../../ux/error-panel.js";
+import { dockerVolumeSpec } from "../../engine/mount.js";
 
 export async function runShell(
   command: string[] | undefined,
@@ -31,9 +32,11 @@ export async function runShell(
     "--rm",
     "-it",
     "-v",
-    `${ctx.paths.geckoSource}:/gecko-source`,
+    dockerVolumeSpec(ctx.paths.geckoSource, "/gecko-source"),
     "-v",
-    `${ctx.manifestDir}:/workspace`,
+    dockerVolumeSpec(ctx.manifestDir, "/workspace"),
+    "-e",
+    "PYTHONUNBUFFERED=1",
     "-w",
     "/gecko-source",
     imageRef,
