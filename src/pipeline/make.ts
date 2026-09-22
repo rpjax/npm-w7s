@@ -21,7 +21,13 @@ import { renderMozconfig, OBJDIR_CONTAINER_PATH } from "../toolchain/mozconfig.j
 import { readPristine, existsPristine as pristineInGit } from "../gecko/pristine.js";
 import { ensureWorkspaceDirs, volumeRootFor, type WorkspacePaths } from "../workspace/paths.js";
 import { writeSidecarPackage } from "../package/sidecar.js";
-import { dockerVolumeSpec } from "../engine/mount.js";
+import {
+  dockerVolumeSpec,
+  ensureVolumeMount,
+  exportPackagedArchiveFromVolume,
+  materializeIntoVolume,
+  usesDockerVolumeBackend,
+} from "../engine/mount.js";
 
 export interface MakeOptions {
   artifact: string;
@@ -111,15 +117,40 @@ async function produceGeckoSource(
 
   let pristineChecked = false;
   if (!dryRun) {
-    await materialize(
-      {
-        git: (args, cwd) => ports.git.text(args, cwd),
-        exists: (path) => existsSync(path),
-      },
-      paths.geckoSource,
-      manifest.gecko,
-    );
-    pristineChecked = true;
+    if (usesDockerVolumeBackend(paths.geckoSource, ports.engine)) {
+      if (manifest.modifications.length > 0) {
+        fail(
+          "Toolchain",
+          "Modifications on a Windows drive require the tree on a WSL filesystem.",
+          {
+            detail:
+              "NTFS workspaces store the Gecko tree in a Docker volume; applying host-side modifications needs a bind-mounted tree.",
+            hint: "Move the manifest to \\\\wsl$\\Ubuntu\\home\\… or keep modifications empty for a smoke build.",
+          },
+        );
+      }
+      const imageRef = options.imageRef ?? (await ensureToolchain(options));
+      await materializeIntoVolume({
+        engine: ports.engine,
+        imageRef,
+        hostTreeDir: paths.geckoSource,
+        repository: manifest.gecko.repository,
+        commit: manifest.gecko.commit,
+      });
+      // Volume trees are verified inside the container; pristine git show on the
+      // host marker is unavailable. Empty modifications skip that path above.
+      pristineChecked = false;
+    } else {
+      await materialize(
+        {
+          git: (args, cwd) => ports.git.text(args, cwd),
+          exists: (path) => existsSync(path),
+        },
+        paths.geckoSource,
+        manifest.gecko,
+      );
+      pristineChecked = true;
+    }
   } else if (await ports.git.ok(["rev-parse", "--git-dir"], paths.geckoSource)) {
     pristineChecked = true;
   } else if (!existsSync(paths.geckoSource)) {
@@ -163,6 +194,9 @@ async function produceGeckoBinary(options: MakeOptions, fingerprint: string): Pr
 
   const imageRef = options.imageRef ?? (await ensureToolchain(options));
 
+  await ensureVolumeMount(ports.engine, paths.geckoSource);
+  await ensureVolumeMount(ports.engine, paths.geckoBinary);
+
   await ensureBootstrapped({
     engine: ports.engine,
     imageRef,
@@ -175,6 +209,8 @@ async function produceGeckoBinary(options: MakeOptions, fingerprint: string): Pr
   const mozbuildDir = mozbuildStateDir(paths.stateDir, imageRef);
   const sccacheDir = join(paths.stateDir, "sccache");
   mkdirSync(sccacheDir, { recursive: true });
+  await ensureVolumeMount(ports.engine, mozbuildDir);
+  await ensureVolumeMount(ports.engine, sccacheDir);
 
   // The mozconfig lives beside the tree, not inside it: the tree is the verified
   // commit plus declared modifications, and nothing else may appear in it.
@@ -184,15 +220,15 @@ async function produceGeckoBinary(options: MakeOptions, fingerprint: string): Pr
 
   const mounts = [
     "-v",
-    dockerVolumeSpec(paths.geckoSource, "/gecko-source"),
+    dockerVolumeSpec(paths.geckoSource, "/gecko-source", undefined, ports.engine),
     "-v",
-    dockerVolumeSpec(paths.geckoBinary, OBJDIR_CONTAINER_PATH),
+    dockerVolumeSpec(paths.geckoBinary, OBJDIR_CONTAINER_PATH, undefined, ports.engine),
     "-v",
-    dockerVolumeSpec(mozbuildDir, MOZBUILD_CONTAINER_PATH),
+    dockerVolumeSpec(mozbuildDir, MOZBUILD_CONTAINER_PATH, undefined, ports.engine),
     "-v",
-    dockerVolumeSpec(sccacheDir, "/cache/sccache"),
+    dockerVolumeSpec(sccacheDir, "/cache/sccache", undefined, ports.engine),
     "-v",
-    dockerVolumeSpec(mozconfigPath, "/w7s.mozconfig", "ro"),
+    dockerVolumeSpec(mozconfigPath, "/w7s.mozconfig", "ro", ports.engine),
     "-e",
     `MOZBUILD_STATE_PATH=${MOZBUILD_CONTAINER_PATH}`,
     "-e",
@@ -234,6 +270,12 @@ async function produceGeckoBinary(options: MakeOptions, fingerprint: string): Pr
       hint: "w7s gecko shell",
     });
   }
+
+  await exportPackagedArchiveFromVolume({
+    engine: ports.engine,
+    imageRef,
+    hostObjdir: paths.geckoBinary,
+  });
 
   stampArtifact(
     "gecko-binary",
