@@ -20,12 +20,13 @@ import {
 import { renderMozconfig, OBJDIR_CONTAINER_PATH } from "../toolchain/mozconfig.js";
 import { readPristine, existsPristine as pristineInGit } from "../gecko/pristine.js";
 import { ensureWorkspaceDirs, volumeRootFor, type WorkspacePaths } from "../workspace/paths.js";
-import { writeSidecarPackage } from "../package/sidecar.js";
+import { writeSidecarPackage, parseMilestoneText, readMilestone } from "../package/sidecar.js";
 import {
   dockerVolumeSpec,
   ensureVolumeMount,
   exportPackagedArchiveFromVolume,
   materializeIntoVolume,
+  readVolumeMarker,
   usesDockerVolumeBackend,
 } from "../engine/mount.js";
 
@@ -286,13 +287,44 @@ async function produceGeckoBinary(options: MakeOptions, fingerprint: string): Pr
   );
 }
 
+async function resolveFirefoxMilestone(options: MakeOptions): Promise<string> {
+  const local = join(options.paths.geckoSource, "config", "milestone.txt");
+  if (existsSync(local)) {
+    return readMilestone(options.paths.geckoSource);
+  }
+  const volume = readVolumeMarker(options.paths.geckoSource);
+  if (!volume) {
+    return readMilestone(options.paths.geckoSource);
+  }
+  const imageRef = options.imageRef ?? (await ensureToolchain(options));
+  const result = await options.ports.engine.run([
+    "run",
+    "--rm",
+    "-v",
+    `${volume}:/gecko-source`,
+    imageRef,
+    "cat",
+    "/gecko-source/config/milestone.txt",
+  ]);
+  if (result.exitCode !== 0) {
+    fail("Execution", "Cannot read the Firefox milestone from the docker volume.", {
+      detail: result.stderr || result.stdout,
+      hint: "w7s gecko make gecko-source",
+    });
+  }
+  return parseMilestoneText(result.stdout, `${volume}:config/milestone.txt`);
+}
+
 async function produceSidecarPackage(options: MakeOptions, fingerprint: string): Promise<void> {
   const { paths, ports, dryRun, manifestDir } = options;
+
+  const firefoxVersion = dryRun ? undefined : await resolveFirefoxMilestone(options);
 
   await writeSidecarPackage({
     paths,
     fingerprint,
     timestamp: ports.clock.now().toISOString(),
+    firefoxVersion,
     dryRun,
   });
 

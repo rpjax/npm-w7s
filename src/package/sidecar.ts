@@ -59,6 +59,18 @@ export function findPackagedArchive(objdir: string): string | null {
 }
 
 /** The milestone of the tree that was compiled. Read, never guessed. */
+export function parseMilestoneText(text: string, sourceLabel: string): string {
+  const line = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !l.startsWith("#"))
+    .pop();
+  if (!line) {
+    fail("Execution", `${sourceLabel} contains no milestone.`);
+  }
+  return line!;
+}
+
 export function readMilestone(geckoSource: string): string {
   const path = join(geckoSource, "config", "milestone.txt");
   if (!existsSync(path)) {
@@ -66,15 +78,7 @@ export function readMilestone(geckoSource: string): string {
       hint: "The tree is not a Gecko checkout, or it was never materialized.",
     });
   }
-  const line = readFileSync(path, "utf8")
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0 && !l.startsWith("#"))
-    .pop();
-  if (!line) {
-    fail("Execution", `${path} contains no milestone.`);
-  }
-  return line!;
+  return parseMilestoneText(readFileSync(path, "utf8"), path);
 }
 
 /**
@@ -82,11 +86,15 @@ export function readMilestone(geckoSource: string): string {
  *   out/<version>/<target>/firefox.tar.gz
  *   out/<version>/<target>/build.json
  * Nothing else.
+ *
+ * `firefoxVersion` may be supplied when the tree lives in a Docker volume and
+ * is not readable on the host marker directory.
  */
 export async function writeSidecarPackage(options: {
   paths: WorkspacePaths;
   fingerprint: string;
   timestamp: string;
+  firefoxVersion?: string;
   dryRun?: boolean;
 }): Promise<{ path: string; sizeBytes: number; sha256: string; buildJson: PackageBuildJson }> {
   const { paths, fingerprint, timestamp, dryRun } = options;
@@ -127,7 +135,7 @@ export async function writeSidecarPackage(options: {
   const buildJson: PackageBuildJson = {
     fingerprint,
     w7sVersion: getVersion(),
-    firefoxVersion: readMilestone(paths.geckoSource),
+    firefoxVersion: options.firefoxVersion ?? readMilestone(paths.geckoSource),
     target: paths.target,
     timestamp,
     hashes: { "firefox.tar.gz": sha },
