@@ -262,6 +262,31 @@ Only `src/toolchain/` may call `ContainerEngine.build`, and only for the Dockerf
 rendered itself. That is the 0.2.0 replacement for the old "the tool never builds an image"
 rule. The product image remains dockup's job.
 
+### Windows NTFS workspaces
+
+Docker Desktop bind-mounts from a Windows drive letter into a Linux container go through a
+userspace file share. A full Gecko tree makes that path unusable — `mach bootstrap` hangs on
+`git`. On NTFS, w7s therefore keeps a marker directory under `.w7s/` and stores the real tree,
+object directory, mozbuild state and sccache cache in Docker **named volumes** (Linux VM
+filesystem). WSL paths (`\\wsl$\…`) keep using bind mounts. Modifications still require a
+bind-mounted tree today — put the manifest on a WSL filesystem if you apply host-side edits.
+
+### Measured smoke (empty `modifications`, Firefox 153.2.0, this machine)
+
+| quantity                                              | measured                                      |
+| ----------------------------------------------------- | --------------------------------------------- |
+| Local toolchain image (`w7s-toolchain:local-…`)       | **3.93 GB**                                   |
+| Object directory (Docker volume)                      | **16 GB**                                     |
+| First toolchain image build                           | **11.1 min**                                  |
+| First `gecko-binary` attempt (until Docker Desktop EOF near link) | **115.3 min**                     |
+| Resume to green after Docker restart (warm objects)   | **96.9 min**                                  |
+| Incremental `gecko-binary` (stamp cleared, objects warm) | **3.7 min**                                |
+| Packaged archive (`firefox.tar.gz` from `.tar.xz`)    | **79.7 MB**                                   |
+
+The cold compile is dominated by a full browser build. A Docker Desktop crash near the end of
+the first attempt forced a resume; a continuous cold run on this host is on the order of two
+hours. Incremental re-package after a warm objdir is minutes.
+
 ## Commands
 
 Grammar: **`w7s gecko <command> [arguments]`**.
