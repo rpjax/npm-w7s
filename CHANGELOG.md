@@ -21,10 +21,11 @@ depends on no registry. The contract is `docs/11-design-0.2.0.md`.
   try another ESR, which is the opposite of the iteration speed it exists for.
 - **`test`, `start` and `stop`.** Running and testing the product belong to the Speculum
   repository. They were the door through which the sidecar would have been rewritten here.
-- **Publishing from CI.** Speculum consumes this from git.
 
 ### Added
 
+- **npm package** `@rodrigopjax/w7s` — install convenience; Speculum may still consume from git.
+  Tag pushes publish via CI (`NPM_TOKEN`). The toolchain image is still local-only.
 - **Three manifest keys** — `gecko`, `toolchain`, `modifications`.
 - **`gecko` declared by repository and full commit**, verified with `rev-parse`. A commit SHA
   is a content hash, so verifying is a proof — which is what makes baking the tree into an

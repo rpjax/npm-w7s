@@ -137,8 +137,10 @@ export function createProgram(deps: AppDeps = {}): Command {
   const program = addGlobalOptions(
     new Command()
       .name("w7s")
-      .description("Websete Speculum toolkit — apply, compile, package and test Speculum Gecko")
-      .version(getVersion(), "-V, --version", "print the w7s version")
+      .description(
+        "Websete Speculum toolkit — materialize, apply, compile, and package Speculum Gecko",
+      )
+      .version(getVersion(), "-V, --version", "print version")
       .enablePositionalOptions(),
   );
 

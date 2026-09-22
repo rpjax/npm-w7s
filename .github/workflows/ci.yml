@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   lint:
@@ -49,15 +50,24 @@ jobs:
       - run: npm run build
       - run: npm run test:e2e
 
-  test-windows:
-    runs-on: windows-latest
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:unit
+      - run: npm run test:integration
+
+  publish:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [lint, test-unit, test-e2e, test-windows]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          registry-url: https://registry.npmjs.org
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: npm run test:unit
-      - run: npm run test:integration
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

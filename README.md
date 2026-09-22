@@ -9,7 +9,8 @@ version — and it is _tailored_ to Speculum. It is not a generic build orchestr
 not pretend to be one.
 
 ```bash
-npm i -D github:rpjax/npm-w7s
+npm i -D @rodrigopjax/w7s
+# or, from git: npm i -D github:rpjax/npm-w7s
 ```
 
 There is no published toolchain image and no registry on the critical path. Everything lives
@@ -69,8 +70,16 @@ Ignore `out/` and `.w7s/` in the consumer repository; `validate` fails if they a
 
 ## Commands
 
+Commander powers argument parsing and built-in help. Use `--help` on the root command or any
+subcommand; `-V` / `--version` print the package version.
+
 ```bash
 cd gecko-engine                       # anywhere under it — w7s walks up to find w7s.json
+
+w7s --help
+w7s --version
+w7s gecko --help
+w7s gecko make --help
 
 w7s gecko toolchain                   # render + build the local image if missing
 w7s gecko make sidecar-package        # does whatever is needed, skips what is current

@@ -289,6 +289,16 @@ hours. Incremental re-package after a warm objdir is minutes.
 
 ## Commands
 
+Commander powers argument parsing and built-in help. Use `--help` on the root command or any
+subcommand:
+
+```bash
+w7s --help
+w7s gecko --help
+w7s gecko make --help
+w7s --version
+```
+
 Grammar: **`w7s gecko <command> [arguments]`**.
 
 | command       | does                                                                                |
@@ -329,7 +339,8 @@ it, belong to Speculum. There is no registry image to pull.
 | `-y, --yes`           | assume yes outside a terminal                |
 | `--no-color`          | plain output                                 |
 | `--timeout <seconds>` | per-step timeout                             |
-| `-V, --version`       | print the w7s version                        |
+| `-V, --version`       | print version                                |
+| `-h, --help`          | display help for command                     |
 
 ### Error phases and exit codes
 
@@ -462,15 +473,16 @@ binaries are not part of the package — that knowledge belongs to the product D
 
 ## Distribution
 
-w7s is consumed by Speculum as a development dependency, from git:
+w7s is consumed as a development dependency from npm (or from git):
 
 ```
-npm i -D github:rpjax/npm-w7s
+npm i -D @rodrigopjax/w7s
+# or: npm i -D github:rpjax/npm-w7s
 ```
 
-There is no npm publish on the critical path, no registry credential, and no release ritual
-pairing two artifacts. Publishing to npm later, for `npx` convenience, is a convenience
-decision and nothing depends on it.
+The critical path does not depend on a registry for the toolchain image — there is none.
+Publishing the CLI to npm is for install convenience (`npx`, versioned deps); nothing in the
+build pipeline pairs two artifacts or waits on a digest.
 
 Version bumps follow semantic versioning for the CLI contract: renamed options, newly required
 manifest fields, changed exit codes or `--json` keys are **major**. A new Gecko commit or

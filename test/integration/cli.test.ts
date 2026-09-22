@@ -83,4 +83,34 @@ describe("cli (integration)", () => {
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, new RegExp(packageVersion.replace(/\./g, "\\.")));
   });
+
+  it("prints version with -V", () => {
+    const result = runW7s(["-V"]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, new RegExp(`^${packageVersion.replace(/\./g, "\\.")}\\s*$`));
+  });
+
+  it("prints root help", () => {
+    const result = runW7s(["--help"]);
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /-V, --version/);
+    assert.match(result.stdout, /print version/);
+    assert.match(result.stdout, /gecko \[options\]/);
+    assert.doesNotMatch(result.stdout, /\band test\b/);
+  });
+
+  it("prints gecko subcommand help", () => {
+    const result = runW7s(["gecko", "--help"]);
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /make \[options\] <artifact>/);
+    assert.match(result.stdout, /validate \[options\]/);
+    assert.match(result.stdout, /toolchain \[options\]/);
+  });
+
+  it("prints make help with artifact argument", () => {
+    const result = runW7s(["gecko", "make", "--help"]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /gecko-source \| gecko-binary \| sidecar-package/);
+    assert.match(result.stdout, /--only/);
+  });
 });
