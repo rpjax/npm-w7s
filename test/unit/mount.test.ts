@@ -4,7 +4,6 @@ import {
   dockerHostPath,
   dockerVolumeNameFor,
   dockerVolumeSpec,
-  isWindowsDrivePath,
   usesDockerVolumeBackend,
 } from "../../src/engine/mount.js";
 import { FakeEngine } from "../helpers/fakes.js";
@@ -25,7 +24,10 @@ describe("docker mounts", () => {
     }
     const fake = new FakeEngine();
     assert.equal(usesDockerVolumeBackend("C:\\tree", fake), false);
-    assert.equal(dockerVolumeSpec("C:\\tree", "/gecko-source", undefined, fake), "C:/tree:/gecko-source");
+    assert.equal(
+      dockerVolumeSpec("C:\\tree", "/gecko-source", undefined, fake),
+      "C:/tree:/gecko-source",
+    );
   });
 
   it("DockerEngine uses named volumes for Windows .w7s trees only", () => {
@@ -38,7 +40,10 @@ describe("docker mounts", () => {
     assert.equal(usesDockerVolumeBackend("C:\\ws\\.w7s\\mozconfig\\x.mozconfig", docker), false);
     const name = dockerVolumeNameFor(gecko);
     assert.match(name, /^w7s-[0-9a-f]{12}$/);
-    assert.equal(dockerVolumeSpec(gecko, "/gecko-source", undefined, docker), `${name}:/gecko-source`);
+    assert.equal(
+      dockerVolumeSpec(gecko, "/gecko-source", undefined, docker),
+      `${name}:/gecko-source`,
+    );
     assert.equal(
       dockerVolumeSpec("C:\\ws\\.w7s\\mozconfig\\x.mozconfig", "/w7s.mozconfig", "ro", docker),
       "C:/ws/.w7s/mozconfig/x.mozconfig:/w7s.mozconfig:ro",

@@ -35,12 +35,7 @@ describe("make e2e", () => {
       assert.equal(payload2.result.stepsRun.length, 0);
 
       assert.equal(
-        currencyOf(
-          "sidecar-package",
-          ws.dir,
-          ws.paths.sidecarPackage,
-          payload1.fingerprint,
-        ).status,
+        currencyOf("sidecar-package", ws.dir, ws.paths.sidecarPackage, payload1.fingerprint).status,
         "current",
       );
     } finally {

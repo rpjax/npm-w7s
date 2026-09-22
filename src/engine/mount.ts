@@ -20,10 +20,7 @@ export function isWindowsDrivePath(hostPath: string): boolean {
   return process.platform === "win32" && /^[A-Za-z]:[\\/]/.test(hostPath);
 }
 
-export function usesDockerVolumeBackend(
-  hostPath: string,
-  engine: ContainerEngine,
-): boolean {
+export function usesDockerVolumeBackend(hostPath: string, engine: ContainerEngine): boolean {
   if (
     !isWindowsDrivePath(hostPath) ||
     (engine as { usesNamedVolumesForNtfs?: boolean }).usesNamedVolumesForNtfs !== true

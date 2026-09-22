@@ -146,10 +146,7 @@ export class FakeGit implements GitPort {
     return this.dispatch(args, cwd).ok;
   }
 
-  private dispatch(
-    args: string[],
-    cwd: string,
-  ): { ok: boolean; stdout: string; stderr: string } {
+  private dispatch(args: string[], cwd: string): { ok: boolean; stdout: string; stderr: string } {
     const [cmd, ...rest] = args;
     if (cmd === "rev-parse") {
       if (rest[0] === "HEAD") {

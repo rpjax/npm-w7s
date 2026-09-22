@@ -273,15 +273,15 @@ bind-mounted tree today — put the manifest on a WSL filesystem if you apply ho
 
 ### Measured smoke (empty `modifications`, Firefox 153.2.0, this machine)
 
-| quantity                                              | measured                                      |
-| ----------------------------------------------------- | --------------------------------------------- |
-| Local toolchain image (`w7s-toolchain:local-…`)       | **3.93 GB**                                   |
-| Object directory (Docker volume)                      | **16 GB**                                     |
-| First toolchain image build                           | **11.1 min**                                  |
-| First `gecko-binary` attempt (until Docker Desktop EOF near link) | **115.3 min**                     |
-| Resume to green after Docker restart (warm objects)   | **96.9 min**                                  |
-| Incremental `gecko-binary` (stamp cleared, objects warm) | **3.7 min**                                |
-| Packaged archive (`firefox.tar.gz` from `.tar.xz`)    | **79.7 MB**                                   |
+| quantity                                                          | measured      |
+| ----------------------------------------------------------------- | ------------- |
+| Local toolchain image (`w7s-toolchain:local-…`)                   | **3.93 GB**   |
+| Object directory (Docker volume)                                  | **16 GB**     |
+| First toolchain image build                                       | **11.1 min**  |
+| First `gecko-binary` attempt (until Docker Desktop EOF near link) | **115.3 min** |
+| Resume to green after Docker restart (warm objects)               | **96.9 min**  |
+| Incremental `gecko-binary` (stamp cleared, objects warm)          | **3.7 min**   |
+| Packaged archive (`firefox.tar.gz` from `.tar.xz`)                | **79.7 MB**   |
 
 The cold compile is dominated by a full browser build. A Docker Desktop crash near the end of
 the first attempt forced a resume; a continuous cold run on this host is on the order of two
