@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { dirname } from "node:path";
 import type { ContainerEngine, EngineRunResult, ImageBuildRequest } from "../ports/engine.js";
 import { fail } from "../errors/index.js";
+import { resolveDockerBinary } from "./docker-cli.js";
 
 export function runProcess(
   command: string,
@@ -54,7 +55,24 @@ export class DockerEngine implements ContainerEngine {
   /** NTFS workspaces use named volumes instead of bind mounts — see mount.ts. */
   readonly usesNamedVolumesForNtfs = true;
 
-  constructor(private readonly binary = "docker") {}
+  private resolvedBinary: string | undefined;
+
+  /**
+   * @param binary Explicit CLI path. When omitted, resolved lazily so Linux/WSL
+   *   rejects docker.exe (see `resolveDockerBinary`).
+   */
+  constructor(private readonly binaryOverride?: string) {}
+
+  /** Resolved Docker CLI path (Linux client under WSL). */
+  get binary(): string {
+    if (this.binaryOverride !== undefined) {
+      return this.binaryOverride;
+    }
+    if (this.resolvedBinary === undefined) {
+      this.resolvedBinary = resolveDockerBinary();
+    }
+    return this.resolvedBinary;
+  }
 
   async available(): Promise<boolean> {
     const result = await runProcess(this.binary, ["version", "--format", "{{.Server.Version}}"]);

@@ -8,6 +8,19 @@ While the version is `0.x`, a minor release may break; every entry that breaks s
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-22
+
+### Fixed
+
+- **`mach bootstrap` / git dubious ownership.** Container commands that run git or `mach`
+  against the bind-mounted tree now set `safe.directory` for `/gecko-source` (and `*`) before
+  the real work. Host `SystemGit` passes `-c safe.directory=*` the same way, so WSL trees
+  that are not owned by the container (or host) uid no longer abort materialize / bootstrap /
+  build.
+- **Docker CLI under WSL.** Linux/WSL resolves a native Docker client and refuses to use
+  `docker.exe` with POSIX `-v /home/…` mounts (those mounts were empty and surfaced as
+  `./mach: No such file or directory`). Enable WSL Integration / install a Linux `docker` CLI.
+
 ## [0.2.0] - 2026-09-21
 
 **Breaking, and a reversal.** w7s is a local builder. It publishes nothing, pulls nothing and

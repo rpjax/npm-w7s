@@ -3,6 +3,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ContainerEngine } from "../ports/engine.js";
 import { fail } from "../errors/index.js";
+import {
+  scriptWithGeckoGitSafeDirectory,
+  withGeckoGitSafeDirectory,
+} from "../toolchain/gecko-git-safe.js";
 
 /**
  * Docker Desktop bind-mounts from a Windows drive letter into a Linux container
@@ -138,7 +142,7 @@ export async function materializeIntoVolume(options: {
     options.imageRef,
     "bash",
     "-lc",
-    "test -d .git && git rev-parse HEAD",
+    withGeckoGitSafeDirectory("test -d .git && git rev-parse HEAD"),
   ]);
   if (existing.exitCode === 0 && existing.stdout.trim() === options.commit) {
     return { volume, state: "already-materialized" };
@@ -166,7 +170,7 @@ export async function materializeIntoVolume(options: {
     options.imageRef,
     "bash",
     "-lc",
-    [
+    scriptWithGeckoGitSafeDirectory([
       "set -euo pipefail",
       "rm -rf /tmp/gecko-clone",
       `git clone --filter=blob:none --no-checkout '${repo}' /tmp/gecko-clone`,
@@ -174,7 +178,7 @@ export async function materializeIntoVolume(options: {
       `git checkout --detach '${commit}'`,
       "shopt -s dotglob && cp -a /tmp/gecko-clone/. /gecko-source/",
       "cd /gecko-source && git rev-parse HEAD",
-    ].join(" && "),
+    ]),
   ]);
 
   if (clone.exitCode !== 0) {

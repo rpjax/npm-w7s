@@ -29,6 +29,7 @@ import {
   readVolumeMarker,
   usesDockerVolumeBackend,
 } from "../engine/mount.js";
+import { withGeckoGitSafeDirectory } from "../toolchain/gecko-git-safe.js";
 
 export interface MakeOptions {
   artifact: string;
@@ -247,7 +248,7 @@ async function produceGeckoBinary(options: MakeOptions, fingerprint: string): Pr
     imageRef,
     "bash",
     "-lc",
-    "./mach build",
+    withGeckoGitSafeDirectory("./mach build"),
   ]);
   if (build.exitCode !== 0) {
     fail("Execution", "Compilation failed.", {
@@ -263,7 +264,7 @@ async function produceGeckoBinary(options: MakeOptions, fingerprint: string): Pr
     imageRef,
     "bash",
     "-lc",
-    "./mach package",
+    withGeckoGitSafeDirectory("./mach package"),
   ]);
   if (pack.exitCode !== 0) {
     fail("Execution", "Packaging failed.", {

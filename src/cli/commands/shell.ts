@@ -4,6 +4,7 @@ import { ensureToolchainImage } from "../../toolchain/image.js";
 import { fail } from "../../errors/index.js";
 import { successPayload } from "../../ux/error-panel.js";
 import { dockerVolumeSpec } from "../../engine/mount.js";
+import { withGeckoGitSafeDirectory } from "../../toolchain/gecko-git-safe.js";
 
 export async function runShell(
   command: string[] | undefined,
@@ -26,7 +27,8 @@ export async function runShell(
     });
   }
 
-  const cmd = command && command.length > 0 ? command : ["bash"];
+  const inner =
+    command && command.length > 0 ? command.map(shellSingleQuote).join(" ") : "exec bash";
   const argv = [
     "run",
     "--rm",
@@ -40,7 +42,9 @@ export async function runShell(
     "-w",
     "/gecko-source",
     imageRef,
-    ...cmd,
+    "bash",
+    "-lc",
+    withGeckoGitSafeDirectory(inner),
   ];
 
   if (run.options.dryRun) {
@@ -65,4 +69,8 @@ export async function runShell(
     });
   }
   return payload;
+}
+
+function shellSingleQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
 }

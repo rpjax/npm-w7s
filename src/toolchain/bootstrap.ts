@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { ContainerEngine } from "../ports/engine.js";
 import { fail } from "../errors/index.js";
 import { dockerVolumeSpec, ensureVolumeMount } from "../engine/mount.js";
+import { withGeckoGitSafeDirectory } from "./gecko-git-safe.js";
 
 /**
  * `mach bootstrap` state, cached under the toolchain tag.
@@ -63,7 +64,7 @@ export async function ensureBootstrapped(options: {
     options.imageRef,
     "bash",
     "-lc",
-    "./mach --no-interactive bootstrap --application-choice=browser",
+    withGeckoGitSafeDirectory("./mach --no-interactive bootstrap --application-choice=browser"),
   ]);
 
   if (result.exitCode !== 0) {
