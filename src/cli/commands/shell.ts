@@ -33,9 +33,7 @@ export async function runShell(
   }
 
   const hasCommand = Boolean(command && command.length > 0);
-  const inner = hasCommand
-    ? (command as string[]).map(shellSingleQuote).join(" ")
-    : "exec bash";
+  const inner = hasCommand ? (command as string[]).map(shellSingleQuote).join(" ") : "exec bash";
 
   const ttyFlags = run.ports.host.isStdoutTTY() ? ["-it"] : ["-i"];
 

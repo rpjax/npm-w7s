@@ -4,11 +4,7 @@ import type { ContainerEngine } from "../ports/engine.js";
 import { dockerVolumeSpec, ensureVolumeMount } from "../engine/mount.js";
 import type { WorkspacePaths } from "../workspace/paths.js";
 import type { W7sManifest } from "../manifest/types.js";
-import {
-  ensureBootstrapped,
-  mozbuildStateDir,
-  MOZBUILD_CONTAINER_PATH,
-} from "./bootstrap.js";
+import { ensureBootstrapped, mozbuildStateDir, MOZBUILD_CONTAINER_PATH } from "./bootstrap.js";
 import { renderMozconfig, OBJDIR_CONTAINER_PATH } from "./mozconfig.js";
 
 /**
