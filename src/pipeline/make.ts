@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { join } from "node:path";
 import { fail } from "../errors/index.js";
 import type { ArtifactName, W7sManifest } from "../manifest/types.js";
 import { expandModifications } from "../modifications/expand.js";
@@ -12,18 +12,11 @@ import type { Ports } from "../ports/index.js";
 import { getVersion } from "../version.js";
 import { ensureToolchainImage } from "../toolchain/image.js";
 import { materialize } from "../gecko/source.js";
-import {
-  ensureBootstrapped,
-  mozbuildStateDir,
-  MOZBUILD_CONTAINER_PATH,
-} from "../toolchain/bootstrap.js";
-import { renderMozconfig, OBJDIR_CONTAINER_PATH } from "../toolchain/mozconfig.js";
+import { geckoBinaryMountArgs } from "../toolchain/binary-container.js";
 import { readPristine, existsPristine as pristineInGit } from "../gecko/pristine.js";
 import { ensureWorkspaceDirs, volumeRootFor, type WorkspacePaths } from "../workspace/paths.js";
 import { writeSidecarPackage, parseMilestoneText, readMilestone } from "../package/sidecar.js";
 import {
-  dockerVolumeSpec,
-  ensureVolumeMount,
   exportPackagedArchiveFromVolume,
   materializeIntoVolume,
   readVolumeMarker,
@@ -196,47 +189,14 @@ async function produceGeckoBinary(options: MakeOptions, fingerprint: string): Pr
 
   const imageRef = options.imageRef ?? (await ensureToolchain(options));
 
-  await ensureVolumeMount(ports.engine, paths.geckoSource);
-  await ensureVolumeMount(ports.engine, paths.geckoBinary);
-
-  await ensureBootstrapped({
-    engine: ports.engine,
-    imageRef,
-    stateDir: paths.stateDir,
-    toolchainTag: imageRef,
-    geckoSource: paths.geckoSource,
-    now: () => ports.clock.now(),
-  });
-
-  const mozbuildDir = mozbuildStateDir(paths.stateDir, imageRef);
-  const sccacheDir = join(paths.stateDir, "sccache");
-  mkdirSync(sccacheDir, { recursive: true });
-  await ensureVolumeMount(ports.engine, mozbuildDir);
-  await ensureVolumeMount(ports.engine, sccacheDir);
-
-  // The mozconfig lives beside the tree, not inside it: the tree is the verified
-  // commit plus declared modifications, and nothing else may appear in it.
-  const mozconfigPath = join(paths.stateDir, "mozconfig", `${paths.version}.mozconfig`);
-  mkdirSync(dirname(mozconfigPath), { recursive: true });
-  writeFileSync(mozconfigPath, renderMozconfig(manifest.toolchain), "utf8");
-
   const mounts = [
-    "-v",
-    dockerVolumeSpec(paths.geckoSource, "/gecko-source", undefined, ports.engine),
-    "-v",
-    dockerVolumeSpec(paths.geckoBinary, OBJDIR_CONTAINER_PATH, undefined, ports.engine),
-    "-v",
-    dockerVolumeSpec(mozbuildDir, MOZBUILD_CONTAINER_PATH, undefined, ports.engine),
-    "-v",
-    dockerVolumeSpec(sccacheDir, "/cache/sccache", undefined, ports.engine),
-    "-v",
-    dockerVolumeSpec(mozconfigPath, "/w7s.mozconfig", "ro", ports.engine),
-    "-e",
-    `MOZBUILD_STATE_PATH=${MOZBUILD_CONTAINER_PATH}`,
-    "-e",
-    "MOZCONFIG=/w7s.mozconfig",
-    "-e",
-    "PYTHONUNBUFFERED=1",
+    ...(await geckoBinaryMountArgs({
+      paths,
+      ports,
+      manifest,
+      imageRef,
+      now: () => ports.clock.now(),
+    })),
     "-w",
     "/gecko-source",
   ];
