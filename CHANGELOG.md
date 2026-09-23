@@ -8,6 +8,21 @@ While the version is `0.x`, a minor release may break; every entry that breaks s
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-09-23
+
+### Fixed
+
+- **`gecko shell` without a TTY.** Uses `docker run -i` when stdout is not a TTY (CI /
+  pipes); keeps `-it` only for interactive terminals. Removes the hard-coded `-it` that
+  aborted with `the input device is not a TTY`.
+- **`gecko shell <cmd>` build mounts.** A shell command now receives the same mounts and
+  env as `gecko make gecko-binary`: gecko-source, gecko-binary, `mozbuildStateDir(tag)` at
+  `/mozbuild` (never the parent `.w7s/mozbuild/`), sccache, mozconfig. Interactive shell
+  (no command) stays light: source + workspace only.
+- **`SPECULUM_*` forward.** Host env vars prefixed with `SPECULUM_` are passed into the
+  container so Speculum gates (`SPECULUM_MONOREPO_ROOT`, `SPECULUM_PHASE9_DIGEST_OUT`, …)
+  work through `w7s gecko shell` without a second docker contract.
+
 ## [0.2.1] - 2026-09-22
 
 ### Fixed

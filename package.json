@@ -1,6 +1,6 @@
 {
   "name": "@rodrigopjax/w7s",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Builds the Speculum Gecko engine: materializes a declared Firefox tree, applies modifications, compiles and packages it \u2014 locally, from a w7s.json",
   "type": "module",
   "bin": {

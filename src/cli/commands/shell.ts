@@ -3,8 +3,13 @@ import { loadValidatedManifest } from "../context.js";
 import { ensureToolchainImage } from "../../toolchain/image.js";
 import { fail } from "../../errors/index.js";
 import { successPayload } from "../../ux/error-panel.js";
-import { dockerVolumeSpec } from "../../engine/mount.js";
 import { withGeckoGitSafeDirectory } from "../../toolchain/gecko-git-safe.js";
+import {
+  geckoBinaryMountArgs,
+  geckoInteractiveDockerArgs,
+  forwardSpeculumEnv,
+} from "../../toolchain/binary-container.js";
+import { dockerVolumeSpec } from "../../engine/mount.js";
 
 export async function runShell(
   command: string[] | undefined,
@@ -27,20 +32,42 @@ export async function runShell(
     });
   }
 
-  const inner =
-    command && command.length > 0 ? command.map(shellSingleQuote).join(" ") : "exec bash";
+  const hasCommand = Boolean(command && command.length > 0);
+  const inner = hasCommand
+    ? (command as string[]).map(shellSingleQuote).join(" ")
+    : "exec bash";
+
+  const ttyFlags = run.ports.host.isStdoutTTY() ? ["-it"] : ["-i"];
+
+  let mountArgs: string[];
+  if (hasCommand) {
+    mountArgs = [
+      ...(await geckoBinaryMountArgs({
+        paths: ctx.paths,
+        ports: run.ports,
+        manifest: ctx.manifest,
+        imageRef,
+        now: () => run.ports.clock.now(),
+      })),
+      "-v",
+      dockerVolumeSpec(ctx.manifestDir, "/workspace", undefined, run.ports.engine),
+      ...forwardSpeculumEnv(),
+      "-w",
+      "/gecko-source",
+    ];
+  } else {
+    mountArgs = geckoInteractiveDockerArgs({
+      paths: ctx.paths,
+      ports: run.ports,
+      manifestDir: ctx.manifestDir,
+    });
+  }
+
   const argv = [
     "run",
     "--rm",
-    "-it",
-    "-v",
-    dockerVolumeSpec(ctx.paths.geckoSource, "/gecko-source", undefined, run.ports.engine),
-    "-v",
-    dockerVolumeSpec(ctx.manifestDir, "/workspace", undefined, run.ports.engine),
-    "-e",
-    "PYTHONUNBUFFERED=1",
-    "-w",
-    "/gecko-source",
+    ...ttyFlags,
+    ...mountArgs,
     imageRef,
     "bash",
     "-lc",
